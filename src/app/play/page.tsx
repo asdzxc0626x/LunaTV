@@ -42,6 +42,8 @@ interface WakeLockSentinel {
   removeEventListener(type: 'release', listener: () => void): void;
 }
 
+type SeekLayoutMode = 'off' | 'both' | 'left' | 'right';
+
 function PlayPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -95,6 +97,34 @@ function PlayPageClient() {
   useEffect(() => {
     blockAdEnabledRef.current = blockAdEnabled;
   }, [blockAdEnabled]);
+
+  // 修改点：快进快退布局配置（持久化）
+  const [seekLayoutMode, setSeekLayoutMode] = useState<SeekLayoutMode>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('seek_layout_mode');
+      if (
+        saved === 'off' ||
+        saved === 'both' ||
+        saved === 'left' ||
+        saved === 'right'
+      ) {
+        return saved;
+      }
+    }
+    return 'both';
+  });
+
+  // 修改点：快进快退秒数配置（持久化，快进快退共用）
+  const [seekSeconds, setSeekSeconds] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('seek_seconds');
+      const parsed = Number(saved);
+      if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 120) {
+        return Math.floor(parsed);
+      }
+    }
+    return 10;
+  });
 
   // 视频基本信息
   const [videoTitle, setVideoTitle] = useState(searchParams.get('title') || '');
@@ -202,6 +232,17 @@ function PlayPageClient() {
 
   const artPlayerRef = useRef<any>(null);
   const artRef = useRef<HTMLDivElement | null>(null);
+
+  // 修改点：快进快退配置引用，确保设置回调读取最新值
+  const seekLayoutModeRef = useRef<SeekLayoutMode>(seekLayoutMode);
+  useEffect(() => {
+    seekLayoutModeRef.current = seekLayoutMode;
+  }, [seekLayoutMode]);
+
+  const seekSecondsRef = useRef<number>(seekSeconds);
+  useEffect(() => {
+    seekSecondsRef.current = seekSeconds;
+  }, [seekSeconds]);
 
   // Wake Lock 相关
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
@@ -615,6 +656,78 @@ function PlayPageClient() {
     }
   };
 
+  // 修改点：快进快退逻辑（统一秒数、边界钳制）
+  const applySeekDelta = (deltaSeconds: number) => {
+    if (!artPlayerRef.current) return;
+
+    const currentTime = Number(artPlayerRef.current.currentTime) || 0;
+    const duration = Number(artPlayerRef.current.duration) || 0;
+    const targetTime =
+      duration > 0
+        ? Math.max(0, Math.min(duration, currentTime + deltaSeconds))
+        : Math.max(0, currentTime + deltaSeconds);
+
+    artPlayerRef.current.currentTime = targetTime;
+
+    const absSeconds = Math.abs(deltaSeconds);
+    artPlayerRef.current.notice.show = `${deltaSeconds >= 0 ? '快进' : '快退'} ${absSeconds} 秒`;
+  };
+
+  const handleSeekForward = () => {
+    applySeekDelta(seekSecondsRef.current);
+  };
+
+  const handleSeekRewind = () => {
+    applySeekDelta(-seekSecondsRef.current);
+  };
+
+  // 修改点：快进快退布局模式文案映射
+  const getSeekLayoutModeLabel = (mode: SeekLayoutMode) => {
+    if (mode === 'off') return '关闭';
+    if (mode === 'left') return '左手';
+    if (mode === 'right') return '右手';
+    return '双手';
+  };
+
+  // 修改点：同步更新设置面板中的快进快退配置展示
+  const syncSeekSettingsPanel = (mode: SeekLayoutMode, seconds: number) => {
+    if (!artPlayerRef.current?.setting) return;
+
+    artPlayerRef.current.setting.update({
+      name: '快进快退模式',
+      html: '布局模式',
+      tooltip: getSeekLayoutModeLabel(mode),
+      onClick: function () {
+        const nextMode: SeekLayoutMode =
+          seekLayoutModeRef.current === 'off'
+            ? 'both'
+            : seekLayoutModeRef.current === 'both'
+              ? 'left'
+              : seekLayoutModeRef.current === 'left'
+                ? 'right'
+                : 'off';
+
+        localStorage.setItem('seek_layout_mode', nextMode);
+        setSeekLayoutMode(nextMode);
+        syncSeekSettingsPanel(nextMode, seekSecondsRef.current);
+        return getSeekLayoutModeLabel(nextMode);
+      },
+    });
+
+    artPlayerRef.current.setting.update({
+      name: '快进快退秒数',
+      html: '快进/快退秒数',
+      tooltip: `${seconds} 秒`,
+      onClick: function () {
+        const nextSeconds = seekSecondsRef.current >= 60 ? 5 : seekSecondsRef.current + 5;
+        localStorage.setItem('seek_seconds', String(nextSeconds));
+        setSeekSeconds(nextSeconds);
+        syncSeekSettingsPanel(seekLayoutModeRef.current, nextSeconds);
+        return `${nextSeconds} 秒`;
+      },
+    });
+  };
+
   class CustomHlsJsLoader extends Hls.DefaultConfig.loader {
     constructor(config: any) {
       super(config);
@@ -1013,19 +1126,16 @@ function PlayPageClient() {
 
     // 左箭头 = 快退
     if (!e.altKey && e.key === 'ArrowLeft') {
-      if (artPlayerRef.current && artPlayerRef.current.currentTime > 5) {
-        artPlayerRef.current.currentTime -= 10;
+      if (artPlayerRef.current) {
+        applySeekDelta(-seekSecondsRef.current);
         e.preventDefault();
       }
     }
 
     // 右箭头 = 快进
     if (!e.altKey && e.key === 'ArrowRight') {
-      if (
-        artPlayerRef.current &&
-        artPlayerRef.current.currentTime < artPlayerRef.current.duration - 5
-      ) {
-        artPlayerRef.current.currentTime += 10;
+      if (artPlayerRef.current) {
+        applySeekDelta(seekSecondsRef.current);
         e.preventDefault();
       }
     }
@@ -1407,6 +1517,42 @@ function PlayPageClient() {
             },
           },
           {
+            // 修改点：新增独立设置分组（快进快退布局）
+            html: '快进快退布局',
+          },
+          {
+            name: '快进快退模式',
+            html: '布局模式',
+            tooltip: getSeekLayoutModeLabel(seekLayoutModeRef.current),
+            onClick: function () {
+              const nextMode: SeekLayoutMode =
+                seekLayoutModeRef.current === 'off'
+                  ? 'both'
+                  : seekLayoutModeRef.current === 'both'
+                    ? 'left'
+                    : seekLayoutModeRef.current === 'left'
+                      ? 'right'
+                      : 'off';
+              localStorage.setItem('seek_layout_mode', nextMode);
+              setSeekLayoutMode(nextMode);
+              syncSeekSettingsPanel(nextMode, seekSecondsRef.current);
+              return getSeekLayoutModeLabel(nextMode);
+            },
+          },
+          {
+            name: '快进快退秒数',
+            html: '快进/快退秒数',
+            tooltip: `${seekSecondsRef.current} 秒`,
+            onClick: function () {
+              const nextSeconds =
+                seekSecondsRef.current >= 60 ? 5 : seekSecondsRef.current + 5;
+              localStorage.setItem('seek_seconds', String(nextSeconds));
+              setSeekSeconds(nextSeconds);
+              syncSeekSettingsPanel(seekLayoutModeRef.current, nextSeconds);
+              return `${nextSeconds} 秒`;
+            },
+          },
+          {
             name: '跳过片头片尾',
             html: '跳过片头片尾',
             switch: skipConfigRef.current.enable,
@@ -1492,6 +1638,9 @@ function PlayPageClient() {
       // 监听播放器事件
       artPlayerRef.current.on('ready', () => {
         setError(null);
+
+        // 修改点：播放器就绪后同步快进快退设置面板文案
+        syncSeekSettingsPanel(seekLayoutModeRef.current, seekSecondsRef.current);
 
         // 播放器就绪后，如果正在播放则请求 Wake Lock
         if (artPlayerRef.current && !artPlayerRef.current.paused) {
@@ -1898,6 +2047,128 @@ function PlayPageClient() {
                   ref={artRef}
                   className='bg-black w-full h-full rounded-xl overflow-hidden shadow-lg'
                 ></div>
+
+                {/* 修改点：快进快退边缘按钮层（锁定态仍可用） */}
+                {seekLayoutMode !== 'off' && (
+                  <div
+                    className='moontv-seek-side-controls-layer'
+                    data-hand-mode={seekLayoutMode === 'both' ? 'both' : seekLayoutMode}
+                  >
+                    {(seekLayoutMode === 'both' || seekLayoutMode === 'left') && (
+                      <>
+                        <button
+                          type='button'
+                          className={`moontv-seek-side-controls ${
+                            seekLayoutMode === 'both'
+                              ? 'moontv-seek-side-controls--rewind moontv-seek-side-controls--left'
+                              : 'moontv-seek-side-controls--rewind'
+                          }`}
+                          onClick={handleSeekRewind}
+                          aria-label={`快退 ${seekSeconds} 秒`}
+                        >
+                          <svg
+                            width='18'
+                            height='18'
+                            viewBox='0 0 24 24'
+                            fill='none'
+                            xmlns='http://www.w3.org/2000/svg'
+                          >
+                            <path
+                              d='M7 11.5H3.5L8.5 6.5V9.5C13.5 9.5 17.5 12.8 18.5 17.5'
+                              stroke='currentColor'
+                              strokeWidth='2'
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                            />
+                          </svg>
+                          <span>{seekSeconds}s</span>
+                        </button>
+                        {seekLayoutMode === 'left' && (
+                          <button
+                            type='button'
+                            className='moontv-seek-side-controls moontv-seek-side-controls--forward'
+                            onClick={handleSeekForward}
+                            aria-label={`快进 ${seekSeconds} 秒`}
+                          >
+                            <svg
+                              width='18'
+                              height='18'
+                              viewBox='0 0 24 24'
+                              fill='none'
+                              xmlns='http://www.w3.org/2000/svg'
+                            >
+                              <path
+                                d='M17 11.5H20.5L15.5 6.5V9.5C10.5 9.5 6.5 12.8 5.5 17.5'
+                                stroke='currentColor'
+                                strokeWidth='2'
+                                strokeLinecap='round'
+                                strokeLinejoin='round'
+                              />
+                            </svg>
+                            <span>{seekSeconds}s</span>
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {(seekLayoutMode === 'both' || seekLayoutMode === 'right') && (
+                      <>
+                        <button
+                          type='button'
+                          className={`moontv-seek-side-controls ${
+                            seekLayoutMode === 'both'
+                              ? 'moontv-seek-side-controls--forward moontv-seek-side-controls--right'
+                              : 'moontv-seek-side-controls--forward'
+                          }`}
+                          onClick={handleSeekForward}
+                          aria-label={`快进 ${seekSeconds} 秒`}
+                        >
+                          <svg
+                            width='18'
+                            height='18'
+                            viewBox='0 0 24 24'
+                            fill='none'
+                            xmlns='http://www.w3.org/2000/svg'
+                          >
+                            <path
+                              d='M17 11.5H20.5L15.5 6.5V9.5C10.5 9.5 6.5 12.8 5.5 17.5'
+                              stroke='currentColor'
+                              strokeWidth='2'
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                            />
+                          </svg>
+                          <span>{seekSeconds}s</span>
+                        </button>
+                        {seekLayoutMode === 'right' && (
+                          <button
+                            type='button'
+                            className='moontv-seek-side-controls moontv-seek-side-controls--rewind'
+                            onClick={handleSeekRewind}
+                            aria-label={`快退 ${seekSeconds} 秒`}
+                          >
+                            <svg
+                              width='18'
+                              height='18'
+                              viewBox='0 0 24 24'
+                              fill='none'
+                              xmlns='http://www.w3.org/2000/svg'
+                            >
+                              <path
+                                d='M7 11.5H3.5L8.5 6.5V9.5C13.5 9.5 17.5 12.8 18.5 17.5'
+                                stroke='currentColor'
+                                strokeWidth='2'
+                                strokeLinecap='round'
+                                strokeLinejoin='round'
+                              />
+                            </svg>
+                            <span>{seekSeconds}s</span>
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* 换源加载蒙层 */}
                 {isVideoLoading && (

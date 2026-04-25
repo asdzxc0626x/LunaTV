@@ -153,6 +153,100 @@ div[data-media-provider] video {
   object-fit: contain;
 }
 
+/* 修改点：快进快退按钮层（双手/单手布局与锁定态可点） */
+.moontv-seek-side-controls-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+}
+
+.moontv-seek-side-controls-layer .moontv-seek-side-controls {
+  position: absolute;
+  top: 39%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background: rgba(17, 24, 39, 0.38);
+  color: #f9fafb;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.moontv-seek-side-controls-layer .moontv-seek-side-controls:hover {
+  transform: translateY(-50%) scale(1.03);
+  background: rgba(17, 24, 39, 0.52);
+  border-color: rgba(255, 255, 255, 0.38);
+}
+
+.moontv-seek-side-controls-layer .moontv-seek-side-controls span {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.moontv-seek-side-controls-layer .moontv-seek-side-controls--left {
+  left: 12px;
+}
+
+.moontv-seek-side-controls-layer .moontv-seek-side-controls--right {
+  right: 12px;
+}
+
+.moontv-seek-side-controls-layer[data-hand-mode='left']
+  .moontv-seek-side-controls--forward {
+  left: 12px;
+  right: auto;
+  top: calc(39% - 39px);
+}
+
+.moontv-seek-side-controls-layer[data-hand-mode='left']
+  .moontv-seek-side-controls--rewind {
+  left: 12px;
+  right: auto;
+  top: 39%;
+}
+
+.moontv-seek-side-controls-layer[data-hand-mode='right']
+  .moontv-seek-side-controls--forward {
+  right: 12px;
+  left: auto;
+  top: calc(39% - 39px);
+}
+
+.moontv-seek-side-controls-layer[data-hand-mode='right']
+  .moontv-seek-side-controls--rewind {
+  right: 12px;
+  left: auto;
+  top: 39%;
+}
+
+/* 修改点：锁定按钮下移，避免与快进快退按钮重叠 */
+.artplayer .art-control-lock {
+  transform: translateY(45px);
+}
+
+/* 修改点：锁定态隐藏原生控制栏，保留自定义快进快退层可用 */
+.artplayer.art-lock .art-bottom,
+.artplayer.art-lock .art-controls,
+.artplayer.art-lock .art-progress,
+.artplayer.art-lock .art-control-thumbnails {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 .art-poster {
   background-size: contain !important; /* 使图片完整展示 */
   background-position: center center !important; /* 居中显示 */
