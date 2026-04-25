@@ -6,6 +6,7 @@ import Artplayer from 'artplayer';
 import Hls from 'hls.js';
 import { Heart } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import { Suspense, useEffect, useRef, useState } from 'react';
 
 import {
@@ -232,6 +233,7 @@ function PlayPageClient() {
 
   const artPlayerRef = useRef<any>(null);
   const artRef = useRef<HTMLDivElement | null>(null);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
 
   // 修改点：快进快退配置引用，确保设置回调读取最新值
   const seekLayoutModeRef = useRef<SeekLayoutMode>(seekLayoutMode);
@@ -515,6 +517,8 @@ function PlayPageClient() {
 
   // 清理播放器资源的统一函数
   const cleanupPlayer = () => {
+    // 修改点：销毁播放器时同步清空 portal 容器，避免残留挂载点
+    setPortalContainer(null);
     if (artPlayerRef.current) {
       try {
         // 销毁 HLS 实例
@@ -1639,6 +1643,9 @@ function PlayPageClient() {
       artPlayerRef.current.on('ready', () => {
         setError(null);
 
+        // 修改点：快进快退按钮优先挂载到 ArtPlayer 内部，保证半屏/网页全屏/全屏常驻
+        setPortalContainer(artPlayerRef.current.template.$player);
+
         // 修改点：播放器就绪后同步快进快退设置面板文案
         syncSeekSettingsPanel(seekLayoutModeRef.current, seekSecondsRef.current);
 
@@ -2048,127 +2055,130 @@ function PlayPageClient() {
                   className='bg-black w-full h-full rounded-xl overflow-hidden shadow-lg'
                 ></div>
 
-                {/* 修改点：快进快退边缘按钮层（锁定态仍可用） */}
-                {seekLayoutMode !== 'off' && (
-                  <div
-                    className='moontv-seek-side-controls-layer'
-                    data-hand-mode={seekLayoutMode === 'both' ? 'both' : seekLayoutMode}
-                  >
-                    {(seekLayoutMode === 'both' || seekLayoutMode === 'left') && (
-                      <>
-                        <button
-                          type='button'
-                          className={`moontv-seek-side-controls ${
-                            seekLayoutMode === 'both'
-                              ? 'moontv-seek-side-controls--rewind moontv-seek-side-controls--left'
-                              : 'moontv-seek-side-controls--rewind'
-                          }`}
-                          onClick={handleSeekRewind}
-                          aria-label={`快退 ${seekSeconds} 秒`}
-                        >
-                          <svg
-                            width='18'
-                            height='18'
-                            viewBox='0 0 24 24'
-                            fill='none'
-                            xmlns='http://www.w3.org/2000/svg'
-                          >
-                            <path
-                              d='M7 11.5H3.5L8.5 6.5V9.5C13.5 9.5 17.5 12.8 18.5 17.5'
-                              stroke='currentColor'
-                              strokeWidth='2'
-                              strokeLinecap='round'
-                              strokeLinejoin='round'
-                            />
-                          </svg>
-                          <span>{seekSeconds}s</span>
-                        </button>
-                        {seekLayoutMode === 'left' && (
-                          <button
-                            type='button'
-                            className='moontv-seek-side-controls moontv-seek-side-controls--forward'
-                            onClick={handleSeekForward}
-                            aria-label={`快进 ${seekSeconds} 秒`}
-                          >
-                            <svg
-                              width='18'
-                              height='18'
-                              viewBox='0 0 24 24'
-                              fill='none'
-                              xmlns='http://www.w3.org/2000/svg'
+                {/* 修改点：快进快退边缘按钮优先挂载到 ArtPlayer 内部，普通/网页全屏/全屏统一常驻显示 */}
+                {seekLayoutMode !== 'off' &&
+                  (portalContainer
+                    ? createPortal(
+                      <div
+                        className='moontv-seek-side-controls-layer'
+                        data-hand-mode={seekLayoutMode === 'both' ? 'both' : seekLayoutMode}
+                      >
+                        {(seekLayoutMode === 'both' || seekLayoutMode === 'left') && (
+                          <>
+                            <button
+                              type='button'
+                              className={`moontv-seek-side-controls ${
+                                seekLayoutMode === 'both'
+                                  ? 'moontv-seek-side-controls--rewind moontv-seek-side-controls--left'
+                                  : 'moontv-seek-side-controls--rewind'
+                              }`}
+                              onClick={handleSeekRewind}
+                              aria-label={`快退 ${seekSeconds} 秒`}
                             >
-                              <path
-                                d='M17 11.5H20.5L15.5 6.5V9.5C10.5 9.5 6.5 12.8 5.5 17.5'
-                                stroke='currentColor'
-                                strokeWidth='2'
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                              />
-                            </svg>
-                            <span>{seekSeconds}s</span>
-                          </button>
+                              {`↺${seekSeconds}`}
+                            </button>
+                            {seekLayoutMode === 'left' && (
+                              <button
+                                type='button'
+                                className='moontv-seek-side-controls moontv-seek-side-controls--forward'
+                                onClick={handleSeekForward}
+                                aria-label={`快进 ${seekSeconds} 秒`}
+                              >
+                                {`↻${seekSeconds}`}
+                              </button>
+                            )}
+                          </>
                         )}
-                      </>
-                    )}
 
-                    {(seekLayoutMode === 'both' || seekLayoutMode === 'right') && (
-                      <>
-                        <button
-                          type='button'
-                          className={`moontv-seek-side-controls ${
-                            seekLayoutMode === 'both'
-                              ? 'moontv-seek-side-controls--forward moontv-seek-side-controls--right'
-                              : 'moontv-seek-side-controls--forward'
-                          }`}
-                          onClick={handleSeekForward}
-                          aria-label={`快进 ${seekSeconds} 秒`}
-                        >
-                          <svg
-                            width='18'
-                            height='18'
-                            viewBox='0 0 24 24'
-                            fill='none'
-                            xmlns='http://www.w3.org/2000/svg'
-                          >
-                            <path
-                              d='M17 11.5H20.5L15.5 6.5V9.5C10.5 9.5 6.5 12.8 5.5 17.5'
-                              stroke='currentColor'
-                              strokeWidth='2'
-                              strokeLinecap='round'
-                              strokeLinejoin='round'
-                            />
-                          </svg>
-                          <span>{seekSeconds}s</span>
-                        </button>
-                        {seekLayoutMode === 'right' && (
-                          <button
-                            type='button'
-                            className='moontv-seek-side-controls moontv-seek-side-controls--rewind'
-                            onClick={handleSeekRewind}
-                            aria-label={`快退 ${seekSeconds} 秒`}
-                          >
-                            <svg
-                              width='18'
-                              height='18'
-                              viewBox='0 0 24 24'
-                              fill='none'
-                              xmlns='http://www.w3.org/2000/svg'
+                        {(seekLayoutMode === 'both' || seekLayoutMode === 'right') && (
+                          <>
+                            <button
+                              type='button'
+                              className={`moontv-seek-side-controls ${
+                                seekLayoutMode === 'both'
+                                  ? 'moontv-seek-side-controls--forward moontv-seek-side-controls--right'
+                                  : 'moontv-seek-side-controls--forward'
+                              }`}
+                              onClick={handleSeekForward}
+                              aria-label={`快进 ${seekSeconds} 秒`}
                             >
-                              <path
-                                d='M7 11.5H3.5L8.5 6.5V9.5C13.5 9.5 17.5 12.8 18.5 17.5'
-                                stroke='currentColor'
-                                strokeWidth='2'
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                              />
-                            </svg>
-                            <span>{seekSeconds}s</span>
-                          </button>
+                              {`↻${seekSeconds}`}
+                            </button>
+                            {seekLayoutMode === 'right' && (
+                              <button
+                                type='button'
+                                className='moontv-seek-side-controls moontv-seek-side-controls--rewind'
+                                onClick={handleSeekRewind}
+                                aria-label={`快退 ${seekSeconds} 秒`}
+                              >
+                                {`↺${seekSeconds}`}
+                              </button>
+                            )}
+                          </>
                         )}
-                      </>
-                    )}
-                  </div>
-                )}
+                      </div>,
+                      portalContainer
+                    )
+                    : (
+                      <div
+                        className='moontv-seek-side-controls-layer'
+                        data-hand-mode={seekLayoutMode === 'both' ? 'both' : seekLayoutMode}
+                      >
+                        {(seekLayoutMode === 'both' || seekLayoutMode === 'left') && (
+                          <>
+                            <button
+                              type='button'
+                              className={`moontv-seek-side-controls ${
+                                seekLayoutMode === 'both'
+                                  ? 'moontv-seek-side-controls--rewind moontv-seek-side-controls--left'
+                                  : 'moontv-seek-side-controls--rewind'
+                              }`}
+                              onClick={handleSeekRewind}
+                              aria-label={`快退 ${seekSeconds} 秒`}
+                            >
+                              {`↺${seekSeconds}`}
+                            </button>
+                            {seekLayoutMode === 'left' && (
+                              <button
+                                type='button'
+                                className='moontv-seek-side-controls moontv-seek-side-controls--forward'
+                                onClick={handleSeekForward}
+                                aria-label={`快进 ${seekSeconds} 秒`}
+                              >
+                                {`↻${seekSeconds}`}
+                              </button>
+                            )}
+                          </>
+                        )}
+
+                        {(seekLayoutMode === 'both' || seekLayoutMode === 'right') && (
+                          <>
+                            <button
+                              type='button'
+                              className={`moontv-seek-side-controls ${
+                                seekLayoutMode === 'both'
+                                  ? 'moontv-seek-side-controls--forward moontv-seek-side-controls--right'
+                                  : 'moontv-seek-side-controls--forward'
+                              }`}
+                              onClick={handleSeekForward}
+                              aria-label={`快进 ${seekSeconds} 秒`}
+                            >
+                              {`↻${seekSeconds}`}
+                            </button>
+                            {seekLayoutMode === 'right' && (
+                              <button
+                                type='button'
+                                className='moontv-seek-side-controls moontv-seek-side-controls--rewind'
+                                onClick={handleSeekRewind}
+                                aria-label={`快退 ${seekSeconds} 秒`}
+                              >
+                                {`↺${seekSeconds}`}
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    ))}
 
                 {/* 换源加载蒙层 */}
                 {isVideoLoading && (
