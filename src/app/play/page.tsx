@@ -45,6 +45,9 @@ interface WakeLockSentinel {
 
 type SeekLayoutMode = 'off' | 'both' | 'left' | 'right';
 
+// 修改点：快进快退秒数二级选项固定为 5/10/15/30
+const SEEK_SECONDS_OPTIONS = [5, 10, 15, 30] as const;
+
 function PlayPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -693,23 +696,37 @@ function PlayPageClient() {
     return '双手';
   };
 
-  // 修改点：同步更新设置面板中的快进快退配置展示
+  // 修改点：生成快进快退布局二级选项
+  const getSeekLayoutSelectorOptions = (mode: SeekLayoutMode) => [
+    { html: '关闭', value: 'off', default: mode === 'off' },
+    { html: '双手', value: 'both', default: mode === 'both' },
+    { html: '左手', value: 'left', default: mode === 'left' },
+    { html: '右手', value: 'right', default: mode === 'right' },
+  ];
+
+  // 修改点：生成快进快退秒数二级选项
+  const getSeekSecondsSelectorOptions = (seconds: number) =>
+    SEEK_SECONDS_OPTIONS.map((option) => ({
+      html: `${option} 秒`,
+      value: option,
+      default: option === seconds,
+    }));
+
+  // 修改点：同步更新设置面板中的快进快退配置展示（二级设置）
   const syncSeekSettingsPanel = (mode: SeekLayoutMode, seconds: number) => {
     if (!artPlayerRef.current?.setting) return;
 
     artPlayerRef.current.setting.update({
-      name: '快进快退模式',
-      html: '布局模式',
+      name: '快进快退布局',
+      html: '快进快退布局',
       tooltip: getSeekLayoutModeLabel(mode),
-      onClick: function () {
+      selector: getSeekLayoutSelectorOptions(mode),
+      onSelect: function (item: any) {
+        const value = item?.value;
         const nextMode: SeekLayoutMode =
-          seekLayoutModeRef.current === 'off'
-            ? 'both'
-            : seekLayoutModeRef.current === 'both'
-              ? 'left'
-              : seekLayoutModeRef.current === 'left'
-                ? 'right'
-                : 'off';
+          value === 'off' || value === 'both' || value === 'left' || value === 'right'
+            ? value
+            : seekLayoutModeRef.current;
 
         localStorage.setItem('seek_layout_mode', nextMode);
         setSeekLayoutMode(nextMode);
@@ -720,10 +737,15 @@ function PlayPageClient() {
 
     artPlayerRef.current.setting.update({
       name: '快进快退秒数',
-      html: '快进/快退秒数',
+      html: '快进快退秒数',
       tooltip: `${seconds} 秒`,
-      onClick: function () {
-        const nextSeconds = seekSecondsRef.current >= 60 ? 5 : seekSecondsRef.current + 5;
+      selector: getSeekSecondsSelectorOptions(seconds),
+      onSelect: function (item: any) {
+        const value = Number(item?.value);
+        const nextSeconds = SEEK_SECONDS_OPTIONS.includes(value as 5 | 10 | 15 | 30)
+          ? value
+          : seekSecondsRef.current;
+
         localStorage.setItem('seek_seconds', String(nextSeconds));
         setSeekSeconds(nextSeconds);
         syncSeekSettingsPanel(seekLayoutModeRef.current, nextSeconds);
@@ -1521,22 +1543,17 @@ function PlayPageClient() {
             },
           },
           {
-            // 修改点：新增独立设置分组（快进快退布局）
+            // 修改点：快进快退布局改为二级设置入口
+            name: '快进快退布局',
             html: '快进快退布局',
-          },
-          {
-            name: '快进快退模式',
-            html: '布局模式',
             tooltip: getSeekLayoutModeLabel(seekLayoutModeRef.current),
-            onClick: function () {
+            selector: getSeekLayoutSelectorOptions(seekLayoutModeRef.current),
+            onSelect: function (item: any) {
+              const value = item?.value;
               const nextMode: SeekLayoutMode =
-                seekLayoutModeRef.current === 'off'
-                  ? 'both'
-                  : seekLayoutModeRef.current === 'both'
-                    ? 'left'
-                    : seekLayoutModeRef.current === 'left'
-                      ? 'right'
-                      : 'off';
+                value === 'off' || value === 'both' || value === 'left' || value === 'right'
+                  ? value
+                  : seekLayoutModeRef.current;
               localStorage.setItem('seek_layout_mode', nextMode);
               setSeekLayoutMode(nextMode);
               syncSeekSettingsPanel(nextMode, seekSecondsRef.current);
@@ -1544,12 +1561,16 @@ function PlayPageClient() {
             },
           },
           {
+            // 修改点：快进快退秒数改为二级设置入口（固定四档）
             name: '快进快退秒数',
-            html: '快进/快退秒数',
+            html: '快进快退秒数',
             tooltip: `${seekSecondsRef.current} 秒`,
-            onClick: function () {
-              const nextSeconds =
-                seekSecondsRef.current >= 60 ? 5 : seekSecondsRef.current + 5;
+            selector: getSeekSecondsSelectorOptions(seekSecondsRef.current),
+            onSelect: function (item: any) {
+              const value = Number(item?.value);
+              const nextSeconds = SEEK_SECONDS_OPTIONS.includes(value as 5 | 10 | 15 | 30)
+                ? value
+                : seekSecondsRef.current;
               localStorage.setItem('seek_seconds', String(nextSeconds));
               setSeekSeconds(nextSeconds);
               syncSeekSettingsPanel(seekLayoutModeRef.current, nextSeconds);
