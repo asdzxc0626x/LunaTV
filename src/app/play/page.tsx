@@ -55,7 +55,7 @@ const SEEK_SECONDS_OPTIONS = [5, 10, 15, 30] as const;
 
 // 修改点：锁定态下补充长按临时倍速配置，避免 ArtPlayer 锁定手势拦截后无法提速
 const LOCKED_LONG_PRESS_RATE = 3;
-const LOCKED_LONG_PRESS_DELAY_MS = 450;
+const LOCKED_LONG_PRESS_DELAY_MS = 1000;
 const LOCKED_LONG_PRESS_MOVE_THRESHOLD = 18;
 const LOCKED_LONG_PRESS_IGNORE_SELECTORS =
   'button, a, input, textarea, select, label, [role="button"], [data-button], .art-controls, .art-setting, .art-selector, .art-control-lock, .art-progress, .art-bottom, .art-top, .moontv-seek-side-controls';
@@ -1947,7 +1947,7 @@ function PlayPageClient() {
           Number(player.playbackRate) || lastPlaybackRateRef.current || 1;
         isLockedLongPressActiveRef.current = true;
         player.playbackRate = LOCKED_LONG_PRESS_RATE;
-        player.notice.show = `${LOCKED_LONG_PRESS_RATE}x 倍速播放`;
+        player.notice.show = `速度：${LOCKED_LONG_PRESS_RATE}x`;
       }, LOCKED_LONG_PRESS_DELAY_MS);
     };
 
