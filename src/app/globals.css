@@ -161,7 +161,7 @@ div[data-media-provider] video {
   pointer-events: none;
 }
 
-/* 修改点：按钮整体上移，避免与锁定按钮位置重合 */
+/* 修改点：为快进快退按钮补充黑色透明液态玻璃背景，同时保持较高透明度避免遮挡画面 */
 .moontv-seek-side-controls-layer .moontv-seek-side-controls {
   position: absolute;
   top: 39%;
@@ -169,10 +169,45 @@ div[data-media-provider] video {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
+  min-width: 52px;
+  height: 36px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.34);
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(8px) saturate(140%);
+  -webkit-backdrop-filter: blur(8px) saturate(140%);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transition:
     opacity 0.18s ease,
     visibility 0.18s ease,
-    background-color 0.2s ease;
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+/* 修改点：悬停/按下时仅轻微加深液态玻璃层次，不扩大遮挡面积 */
+.moontv-seek-side-controls-layer .moontv-seek-side-controls:hover {
+  background: rgba(0, 0, 0, 0.42);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.moontv-seek-side-controls-layer .moontv-seek-side-controls:active {
+  background: rgba(0, 0, 0, 0.46);
 }
 
 .moontv-seek-side-controls-layer .moontv-seek-side-controls--left {
