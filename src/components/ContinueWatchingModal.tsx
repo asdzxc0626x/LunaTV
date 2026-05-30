@@ -35,6 +35,28 @@ export const ContinueWatchingModal: React.FC<ContinueWatchingModalProps> = ({
     }
   }, [isOpen]);
 
+  // 修改点：监听点击事件，点击卡片时关闭弹窗
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleCardClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // 检查是否点击了视频卡片或其子元素
+      const videoCard = target.closest('[data-video-card]');
+      if (videoCard) {
+        // 延迟关闭弹窗，确保路由跳转先执行
+        setTimeout(() => {
+          onClose();
+        }, 100);
+      }
+    };
+
+    document.addEventListener('click', handleCardClick);
+    return () => {
+      document.removeEventListener('click', handleCardClick);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return createPortal(

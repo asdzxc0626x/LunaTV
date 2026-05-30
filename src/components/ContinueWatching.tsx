@@ -10,7 +10,6 @@ import {
   subscribeToDataUpdates,
 } from '@/lib/db.client';
 
-import ScrollableRow from '@/components/ScrollableRow';
 import VideoCard from '@/components/VideoCard';
 
 interface ContinueWatchingProps {
@@ -68,18 +67,18 @@ export default function ContinueWatching({ className }: ContinueWatchingProps) {
     return unsubscribe;
   }, []);
 
-  // 如果没有播放记录，则不渲染组件
+  // 修改点：如果没有播放记录，则不渲染组件
   if (!loading && playRecords.length === 0) {
     return null;
   }
 
-  // 计算播放进度百分比
+  // 修改点：计算播放进度百分比
   const getProgress = (record: PlayRecord) => {
     if (record.total_time === 0) return 0;
     return (record.play_time / record.total_time) * 100;
   };
 
-  // 从 key 中解析 source 和 id
+  // 修改点：从 key 中解析 source 和 id
   const parseKey = (key: string) => {
     const [source, id] = key.split('+');
     return { source, id };
@@ -90,6 +89,12 @@ export default function ContinueWatching({ className }: ContinueWatchingProps) {
       <div className='mb-4 flex items-center justify-between'>
         <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
           继续观看
+          {/* 修改点：显示实际卡片数量 */}
+          {!loading && playRecords.length > 0 && (
+            <span className='ml-2 text-sm font-normal text-gray-500 dark:text-gray-400'>
+              ({playRecords.length})
+            </span>
+          )}
         </h2>
         {!loading && playRecords.length > 0 && (
           <button
@@ -103,14 +108,12 @@ export default function ContinueWatching({ className }: ContinueWatchingProps) {
           </button>
         )}
       </div>
-      <ScrollableRow>
+      {/* 修改点：使用响应式网格布局替代横向滚动，小屏2列，中屏3-4列，大屏最多6列 */}
+      <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4'>
         {loading
-          ? // 加载状态显示灰色占位数据
+          ? // 修改点：加载状态显示灰色占位数据
             Array.from({ length: 6 }).map((_, index) => (
-              <div
-                key={index}
-                className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-              >
+              <div key={index} className='w-full'>
                 <div className='relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-gray-200 animate-pulse dark:bg-gray-800'>
                   <div className='absolute inset-0 bg-gray-300 dark:bg-gray-700'></div>
                 </div>
@@ -118,14 +121,11 @@ export default function ContinueWatching({ className }: ContinueWatchingProps) {
                 <div className='mt-1 h-3 bg-gray-200 rounded animate-pulse dark:bg-gray-800'></div>
               </div>
             ))
-          : // 显示真实数据
+          : // 修改点：显示真实数据，卡片自适应网格大小
             playRecords.map((record) => {
               const { source, id } = parseKey(record.key);
               return (
-                <div
-                  key={record.key}
-                  className='min-w-[96px] w-24 sm:min-w-[180px] sm:w-44'
-                >
+                <div key={record.key} className='w-full'>
                   <VideoCard
                     id={id}
                     title={record.title}
@@ -148,7 +148,7 @@ export default function ContinueWatching({ className }: ContinueWatchingProps) {
                 </div>
               );
             })}
-      </ScrollableRow>
+      </div>
     </section>
   );
 }
