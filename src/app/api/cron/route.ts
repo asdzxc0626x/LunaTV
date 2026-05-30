@@ -199,14 +199,23 @@ async function refreshRecordAndFavorites() {
 
             const episodeCount = detail.episodes?.length || 0;
             if (episodeCount > 0 && episodeCount !== record.total_episodes) {
+              // 修改点：自动重置基线 - 如果用户已看完最新集，重置 original_episodes
+              let newOriginalEpisodes =
+                record.original_episodes || record.total_episodes;
+              if (record.index >= record.total_episodes) {
+                console.log(
+                  `🔄 [Cron 自动重置基线] ${record.title}: 已看完第 ${record.index} 集（共 ${record.total_episodes} 集），重置 original_episodes 为 ${record.total_episodes}`
+                );
+                newOriginalEpisodes = record.total_episodes;
+              }
+
               await db.savePlayRecord(user, source, id, {
                 title: detail.title || record.title,
                 source_name: record.source_name,
                 cover: detail.poster || record.cover,
                 index: record.index,
                 total_episodes: episodeCount,
-                original_episodes:
-                  record.original_episodes || record.total_episodes,
+                original_episodes: newOriginalEpisodes,
                 play_time: record.play_time,
                 year: detail.year || record.year,
                 total_time: record.total_time,

@@ -1313,7 +1313,6 @@ function PlayPageClient() {
         cover: detailRef.current?.poster || '',
         index: currentEpisodeIndexRef.current + 1, // 转换为1基索引
         total_episodes: detailRef.current?.episodes.length || 1,
-        original_episodes: detailRef.current?.episodes.length || 1, // 修改点：首次保存时记录原始集数，作为后续更新提醒基线
         play_time: Math.floor(currentTime),
         total_time: Math.floor(duration),
         save_time: Date.now(),

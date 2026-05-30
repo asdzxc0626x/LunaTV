@@ -625,6 +625,7 @@ export async function getAllPlayRecords(): Promise<Record<string, PlayRecord>> {
 /**
  * 保存播放记录。
  * 数据库存储模式下使用乐观更新：先更新缓存（立即生效），再异步同步到数据库。
+ * 修改点：自动重置基线 - 当用户看完最新集时，自动将 original_episodes 更新为当前 total_episodes
  */
 export async function savePlayRecord(
   source: string,
@@ -633,11 +634,35 @@ export async function savePlayRecord(
 ): Promise<void> {
   const key = generateStorageKey(source, id);
 
+  // 修改点：获取现有记录，用于保护 original_episodes 和实现自动重置基线
+  const existingRecords = await getAllPlayRecords();
+  const existingRecord = existingRecords[key];
+
+  // 修改点：处理 original_episodes 字段
+  const finalRecord = { ...record };
+
+  if (existingRecord) {
+    // 已有记录：保留原始集数
+    finalRecord.original_episodes =
+      existingRecord.original_episodes || existingRecord.total_episodes;
+
+    // 修改点：自动重置基线 - 如果用户看完了最新集（index >= total_episodes），重置基线
+    if (record.index >= record.total_episodes) {
+      console.log(
+        `🔄 [自动重置基线] ${record.title}: 已看完第 ${record.index} 集（共 ${record.total_episodes} 集），重置 original_episodes`
+      );
+      finalRecord.original_episodes = record.total_episodes;
+    }
+  } else {
+    // 首次保存：使用当前总集数作为基线
+    finalRecord.original_episodes = record.total_episodes;
+  }
+
   // 数据库存储模式：乐观更新策略（包括 redis 和 upstash）
   if (STORAGE_TYPE !== 'localstorage') {
     // 立即更新缓存
     const cachedRecords = cacheManager.getCachedPlayRecords() || {};
-    cachedRecords[key] = record;
+    cachedRecords[key] = finalRecord;
     cacheManager.cachePlayRecords(cachedRecords);
 
     // 触发立即更新事件
@@ -654,7 +679,7 @@ export async function savePlayRecord(
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ key, record }),
+        body: JSON.stringify({ key, record: finalRecord }),
       });
     } catch (err) {
       await handleDatabaseOperationFailure('playRecords', err);
@@ -672,7 +697,7 @@ export async function savePlayRecord(
 
   try {
     const allRecords = await getAllPlayRecords();
-    allRecords[key] = record;
+    allRecords[key] = finalRecord;
     localStorage.setItem(PLAY_RECORDS_KEY, JSON.stringify(allRecords));
     window.dispatchEvent(
       new CustomEvent('playRecordsUpdated', {
