@@ -9,6 +9,7 @@ import {
   ExternalLink,
   KeyRound,
   LogOut,
+  Play,
   Settings,
   Shield,
   User,
@@ -23,6 +24,7 @@ import { CURRENT_VERSION } from '@/lib/version';
 import { checkForUpdates, UpdateStatus } from '@/lib/version_check';
 import { getWatchingUpdates, WatchingUpdate } from '@/hooks/useWatchingUpdates';
 
+import { ContinueWatchingModal } from './ContinueWatchingModal'; // 修改点：引入继续观看弹窗组件
 import { VersionPanel } from './VersionPanel';
 import { WatchingUpdatesModal } from './WatchingUpdatesModal'; // 修改点：引入追更提醒弹窗组件
 
@@ -47,6 +49,8 @@ export const UserMenu: React.FC = () => {
   );
   const [isWatchingUpdatesModalOpen, setIsWatchingUpdatesModalOpen] =
     useState(false); // 修改点：追更提醒弹窗状态
+  const [isContinueWatchingModalOpen, setIsContinueWatchingModalOpen] =
+    useState(false); // 修改点：继续观看弹窗状态
 
   // Body 滚动锁定 - 使用 overflow 方式避免布局问题
   useEffect(() => {
@@ -569,6 +573,25 @@ export const UserMenu: React.FC = () => {
               {watchingUpdates && watchingUpdates.updatedCount > 0 && (
                 <span className='ml-auto inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium text-white bg-red-500 rounded-full'>
                   {watchingUpdates.updatedCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* 修改点：继续观看入口，仅在非 localStorage 模式下显示 */}
+          {storageType !== 'localstorage' && (
+            <button
+              onClick={() => {
+                handleCloseMenu();
+                setIsContinueWatchingModalOpen(true); // 修改点：打开继续观看弹窗
+              }}
+              className='w-full px-3 py-2 text-left flex items-center gap-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm relative'
+            >
+              <Play className='w-4 h-4 text-gray-500 dark:text-gray-400' />
+              <span className='font-medium'>继续观看</span>
+              {watchingUpdates && watchingUpdates.continueWatchingCount > 0 && (
+                <span className='ml-auto inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium text-white bg-blue-500 rounded-full'>
+                  {watchingUpdates.continueWatchingCount}
                 </span>
               )}
             </button>
@@ -1195,6 +1218,17 @@ export const UserMenu: React.FC = () => {
         isOpen={isWatchingUpdatesModalOpen}
         onClose={() => setIsWatchingUpdatesModalOpen(false)}
         updates={watchingUpdates?.updatedSeries || []}
+      />
+
+      {/* 修改点：继续观看弹窗 */}
+      <ContinueWatchingModal
+        isOpen={isContinueWatchingModalOpen}
+        onClose={() => setIsContinueWatchingModalOpen(false)}
+        items={
+          watchingUpdates?.updatedSeries.filter(
+            (item) => item.hasContinueWatching
+          ) || []
+        }
       />
     </>
   );
