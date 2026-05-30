@@ -48,13 +48,16 @@ async function refreshAllLiveChannels() {
 
   // 并发刷新所有启用的直播源
   const refreshPromises = (config.LiveConfig || [])
-    .filter(liveInfo => !liveInfo.disabled)
+    .filter((liveInfo) => !liveInfo.disabled)
     .map(async (liveInfo) => {
       try {
         const nums = await refreshLiveChannels(liveInfo);
         liveInfo.channelNumber = nums;
       } catch (error) {
-        console.error(`刷新直播源失败 [${liveInfo.name || liveInfo.key}]:`, error);
+        console.error(
+          `刷新直播源失败 [${liveInfo.name || liveInfo.key}]:`,
+          error
+        );
         liveInfo.channelNumber = 0;
       }
     });
@@ -68,7 +71,12 @@ async function refreshAllLiveChannels() {
 
 async function refreshConfig() {
   let config = await getConfig();
-  if (config && config.ConfigSubscribtion && config.ConfigSubscribtion.URL && config.ConfigSubscribtion.AutoUpdate) {
+  if (
+    config &&
+    config.ConfigSubscribtion &&
+    config.ConfigSubscribtion.URL &&
+    config.ConfigSubscribtion.AutoUpdate
+  ) {
     try {
       const response = await fetch(config.ConfigSubscribtion.URL);
 
@@ -156,7 +164,11 @@ async function refreshRecordAndFavorites() {
           results[i] = await tasks[i]();
         }
       };
-      await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker()));
+      await Promise.all(
+        Array.from({ length: Math.min(concurrency, tasks.length) }, () =>
+          worker()
+        )
+      );
       return results;
     };
 
@@ -193,7 +205,8 @@ async function refreshRecordAndFavorites() {
                 cover: detail.poster || record.cover,
                 index: record.index,
                 total_episodes: episodeCount,
-                original_episodes: record.original_episodes || record.total_episodes,
+                original_episodes:
+                  record.original_episodes || record.total_episodes,
                 play_time: record.play_time,
                 year: detail.year || record.year,
                 total_time: record.total_time,

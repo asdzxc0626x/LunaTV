@@ -25,10 +25,7 @@ export function hashPassword(password: string): string {
  * - 加盐哈希: `salt:hash` (新格式)
  * - 明文密码: 不含 `:` 或长度不符合哈希格式 (旧格式，兼容迁移期)
  */
-export function verifyPassword(
-  password: string,
-  storedValue: string
-): boolean {
+export function verifyPassword(password: string, storedValue: string): boolean {
   // 判断是否为加盐哈希格式 (salt:hash, salt 32 hex chars, hash 128 hex chars)
   const parts = storedValue.split(':');
   if (

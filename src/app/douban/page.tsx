@@ -215,7 +215,7 @@ function DoubanPageClient() {
         snapshot1.selectedWeekday === snapshot2.selectedWeekday &&
         snapshot1.currentPage === snapshot2.currentPage &&
         JSON.stringify(snapshot1.multiLevelSelection) ===
-        JSON.stringify(snapshot2.multiLevelSelection)
+          JSON.stringify(snapshot2.multiLevelSelection)
       );
     },
     []
@@ -687,12 +687,12 @@ function DoubanPageClient() {
     return type === 'movie'
       ? '电影'
       : type === 'tv'
-        ? '电视剧'
-        : type === 'anime'
-          ? '动漫'
-          : type === 'show'
-            ? '综艺'
-            : '自定义';
+      ? '电视剧'
+      : type === 'anime'
+      ? '动漫'
+      : type === 'show'
+      ? '综艺'
+      : '自定义';
   };
 
   const getPageDescription = () => {
@@ -755,12 +755,15 @@ function DoubanPageClient() {
         {/* 内容展示区域 */}
         <div className='max-w-[95%] mx-auto mt-8 overflow-visible'>
           {/* 内容网格 */}
-          {loading || !selectorsReady
-            ? // 显示骨架屏
+          {loading || !selectorsReady ? (
+            // 显示骨架屏
             <div className='justify-start grid grid-cols-3 gap-x-2 gap-y-12 px-0 sm:px-2 sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] sm:gap-x-8 sm:gap-y-20'>
-              {skeletonData.map((index) => <DoubanCardSkeleton key={index} />)}
+              {skeletonData.map((index) => (
+                <DoubanCardSkeleton key={index} />
+              ))}
             </div>
-            : // 显示实际数据
+          ) : (
+            // 显示实际数据
             <VirtualGrid
               items={doubanData}
               className='grid-cols-3 gap-x-2 px-0 sm:px-2 sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] sm:gap-x-8'
@@ -783,7 +786,7 @@ function DoubanPageClient() {
                 </div>
               )}
             />
-          }
+          )}
 
           {/* 加载更多指示器 */}
           {hasMore && !loading && (

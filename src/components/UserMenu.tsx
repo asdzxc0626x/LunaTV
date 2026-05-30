@@ -566,10 +566,9 @@ export const UserMenu: React.FC = () => {
             >
               <Bell className='w-4 h-4 text-gray-500 dark:text-gray-400' />
               <span className='font-medium'>追更提醒</span>
-              {watchingUpdates && watchingUpdates.hasUpdates && (
+              {watchingUpdates && watchingUpdates.updatedCount > 0 && (
                 <span className='ml-auto inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium text-white bg-red-500 rounded-full'>
-                  {watchingUpdates.updatedCount +
-                    watchingUpdates.continueWatchingCount}
+                  {watchingUpdates.updatedCount}
                 </span>
               )}
             </button>
@@ -1166,10 +1165,10 @@ export const UserMenu: React.FC = () => {
         {updateStatus === UpdateStatus.HAS_UPDATE && (
           <div className='absolute top-[2px] right-[2px] w-2 h-2 bg-yellow-500 rounded-full'></div>
         )}
-        {/* 修改点：追更提醒红点，仅在有更新且非 localStorage 模式下显示 */}
+        {/* 修改点：追更提醒红点，仅在有新集更新且非 localStorage 模式下显示 */}
         {storageType !== 'localstorage' &&
           watchingUpdates &&
-          watchingUpdates.hasUpdates && (
+          watchingUpdates.updatedCount > 0 && (
             <div className='absolute top-[2px] right-[10px] w-2 h-2 bg-red-500 rounded-full'></div>
           )}
       </div>

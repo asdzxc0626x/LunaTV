@@ -42,7 +42,10 @@ export async function GET(request: NextRequest) {
     if (key) {
       const [source, id] = key.split('+');
       if (!source || !id) {
-        return NextResponse.json({ error: 'Invalid key format' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Invalid key format' },
+          { status: 400 }
+        );
       }
       const reminder = await db.getReminder(authInfo.username, source, id);
       return NextResponse.json(reminder, { status: 200 });
@@ -117,7 +120,10 @@ export async function POST(request: NextRequest) {
 
     const [source, id] = key.split('+');
     if (!source || !id) {
-      return NextResponse.json({ error: 'Invalid key format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid key format' },
+        { status: 400 }
+      );
     }
 
     const finalReminder: Reminder = {
@@ -172,7 +178,10 @@ export async function DELETE(request: NextRequest) {
     if (key) {
       const [source, id] = key.split('+');
       if (!source || !id) {
-        return NextResponse.json({ error: 'Invalid key format' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Invalid key format' },
+          { status: 400 }
+        );
       }
       await db.deleteReminder(username, source, id);
     } else {

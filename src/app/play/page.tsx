@@ -6,8 +6,8 @@ import Artplayer from 'artplayer';
 import Hls from 'hls.js';
 import { Heart } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createPortal } from 'react-dom';
 import { Suspense, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import {
   deleteFavorite,
@@ -248,7 +248,9 @@ function PlayPageClient() {
 
   const artPlayerRef = useRef<any>(null);
   const artRef = useRef<HTMLDivElement | null>(null);
-  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(
+    null
+  );
 
   // 修改点：补充锁定态长按倍速状态，确保锁定时仍可临时提速且松手后恢复原倍速
   const lockedLongPressTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -393,8 +395,10 @@ function PlayPageClient() {
     console.log('播放源评分排序结果:');
     resultsWithScore.forEach((result, index) => {
       console.log(
-        `${index + 1}. ${result.source.source_name
-        } - 评分: ${result.score.toFixed(2)} (${result.testResult.quality}, ${result.testResult.loadSpeed
+        `${index + 1}. ${
+          result.source.source_name
+        } - 评分: ${result.score.toFixed(2)} (${result.testResult.quality}, ${
+          result.testResult.loadSpeed
         }, ${result.testResult.pingTime}ms)`
       );
     });
@@ -560,7 +564,8 @@ function PlayPageClient() {
     isLockedLongPressActiveRef.current = false;
     if (
       Math.abs(
-        (Number(player.playbackRate) || 1) - lockedLongPressRestoreRateRef.current
+        (Number(player.playbackRate) || 1) -
+          lockedLongPressRestoreRateRef.current
       ) > 0.01
     ) {
       player.playbackRate = lockedLongPressRestoreRateRef.current;
@@ -573,7 +578,8 @@ function PlayPageClient() {
   };
 
   const isArtPlayerLocked = () => {
-    const playerRoot = portalContainer || artPlayerRef.current?.template?.$player;
+    const playerRoot =
+      portalContainer || artPlayerRef.current?.template?.$player;
     return !!playerRoot?.classList?.contains('art-lock');
   };
 
@@ -738,7 +744,9 @@ function PlayPageClient() {
     artPlayerRef.current.currentTime = targetTime;
 
     const absSeconds = Math.abs(deltaSeconds);
-    artPlayerRef.current.notice.show = `${deltaSeconds >= 0 ? '快进' : '快退'} ${absSeconds} 秒`;
+    artPlayerRef.current.notice.show = `${
+      deltaSeconds >= 0 ? '快进' : '快退'
+    } ${absSeconds} 秒`;
   };
 
   const handleSeekForward = () => {
@@ -785,7 +793,10 @@ function PlayPageClient() {
       onSelect: function (item: any) {
         const value = item?.value;
         const nextMode: SeekLayoutMode =
-          value === 'off' || value === 'both' || value === 'left' || value === 'right'
+          value === 'off' ||
+          value === 'both' ||
+          value === 'left' ||
+          value === 'right'
             ? value
             : seekLayoutModeRef.current;
 
@@ -803,7 +814,9 @@ function PlayPageClient() {
       selector: getSeekSecondsSelectorOptions(seconds),
       onSelect: function (item: any) {
         const value = Number(item?.value);
-        const nextSeconds = SEEK_SECONDS_OPTIONS.includes(value as 5 | 10 | 15 | 30)
+        const nextSeconds = SEEK_SECONDS_OPTIONS.includes(
+          value as 5 | 10 | 15 | 30
+        )
           ? value
           : seekSecondsRef.current;
 
@@ -888,13 +901,13 @@ function PlayPageClient() {
         const results = data.results.filter(
           (result: SearchResult) =>
             result.title.replaceAll(' ', '').toLowerCase() ===
-            videoTitleRef.current.replaceAll(' ', '').toLowerCase() &&
+              videoTitleRef.current.replaceAll(' ', '').toLowerCase() &&
             (videoYearRef.current
               ? result.year.toLowerCase() === videoYearRef.current.toLowerCase()
               : true) &&
             (searchType
               ? (searchType === 'tv' && result.episodes.length > 1) ||
-              (searchType === 'movie' && result.episodes.length === 1)
+                (searchType === 'movie' && result.episodes.length === 1)
               : true)
         );
         setAvailableSources(results);
@@ -1300,8 +1313,7 @@ function PlayPageClient() {
         cover: detailRef.current?.poster || '',
         index: currentEpisodeIndexRef.current + 1, // 转换为1基索引
         total_episodes: detailRef.current?.episodes.length || 1,
-        original_episodes:
-          detailRef.current?.episodes.length || 1, // 修改点：首次保存时记录原始集数，作为后续更新提醒基线
+        original_episodes: detailRef.current?.episodes.length || 1, // 修改点：首次保存时记录原始集数，作为后续更新提醒基线
         play_time: Math.floor(currentTime),
         total_time: Math.floor(duration),
         save_time: Date.now(),
@@ -1463,8 +1475,9 @@ function PlayPageClient() {
     // 非WebKit浏览器且播放器已存在，使用switch方法切换
     if (!isWebkit && artPlayerRef.current) {
       artPlayerRef.current.switch = videoUrl;
-      artPlayerRef.current.title = `${videoTitle} - 第${currentEpisodeIndex + 1
-        }集`;
+      artPlayerRef.current.title = `${videoTitle} - 第${
+        currentEpisodeIndex + 1
+      }集`;
       artPlayerRef.current.poster = videoCover;
       if (artPlayerRef.current?.video) {
         ensureVideoSource(
@@ -1614,7 +1627,10 @@ function PlayPageClient() {
             onSelect: function (item: any) {
               const value = item?.value;
               const nextMode: SeekLayoutMode =
-                value === 'off' || value === 'both' || value === 'left' || value === 'right'
+                value === 'off' ||
+                value === 'both' ||
+                value === 'left' ||
+                value === 'right'
                   ? value
                   : seekLayoutModeRef.current;
               localStorage.setItem('seek_layout_mode', nextMode);
@@ -1631,7 +1647,9 @@ function PlayPageClient() {
             selector: getSeekSecondsSelectorOptions(seekSecondsRef.current),
             onSelect: function (item: any) {
               const value = Number(item?.value);
-              const nextSeconds = SEEK_SECONDS_OPTIONS.includes(value as 5 | 10 | 15 | 30)
+              const nextSeconds = SEEK_SECONDS_OPTIONS.includes(
+                value as 5 | 10 | 15 | 30
+              )
                 ? value
                 : seekSecondsRef.current;
               localStorage.setItem('seek_seconds', String(nextSeconds));
@@ -1731,7 +1749,10 @@ function PlayPageClient() {
         setPortalContainer(artPlayerRef.current.template.$player);
 
         // 修改点：播放器就绪后同步快进快退设置面板文案
-        syncSeekSettingsPanel(seekLayoutModeRef.current, seekSecondsRef.current);
+        syncSeekSettingsPanel(
+          seekLayoutModeRef.current,
+          seekSecondsRef.current
+        );
 
         // 播放器就绪后，如果正在播放则请求 Wake Lock
         if (artPlayerRef.current && !artPlayerRef.current.paused) {
@@ -1835,7 +1856,7 @@ function PlayPageClient() {
           skipConfigRef.current.outro_time < 0 &&
           duration > 0 &&
           currentTime >
-          artPlayerRef.current.duration + skipConfigRef.current.outro_time
+            artPlayerRef.current.duration + skipConfigRef.current.outro_time
         ) {
           if (
             currentEpisodeIndexRef.current <
@@ -1926,7 +1947,10 @@ function PlayPageClient() {
         return;
       }
 
-      if (!isArtPlayerLocked() || isLockedLongPressIgnoredTarget(event.target)) {
+      if (
+        !isArtPlayerLocked() ||
+        isLockedLongPressIgnoredTarget(event.target)
+      ) {
         stopLockedLongPressRate();
         return;
       }
@@ -1975,8 +1999,10 @@ function PlayPageClient() {
         return;
       }
 
-      const deltaX = trackedTouch.clientX - lockedLongPressStartPointRef.current.x;
-      const deltaY = trackedTouch.clientY - lockedLongPressStartPointRef.current.y;
+      const deltaX =
+        trackedTouch.clientX - lockedLongPressStartPointRef.current.x;
+      const deltaY =
+        trackedTouch.clientY - lockedLongPressStartPointRef.current.y;
       const moveDistance = Math.hypot(deltaX, deltaY);
       if (moveDistance > LOCKED_LONG_PRESS_MOVE_THRESHOLD) {
         stopLockedLongPressRate();
@@ -2045,27 +2071,30 @@ function PlayPageClient() {
             <div className='mb-6 w-80 mx-auto'>
               <div className='flex justify-center space-x-2 mb-4'>
                 <div
-                  className={`w-3 h-3 rounded-full transition-all duration-500 ${loadingStage === 'searching' || loadingStage === 'fetching'
-                    ? 'bg-green-500 scale-125'
-                    : loadingStage === 'preferring' ||
-                      loadingStage === 'ready'
+                  className={`w-3 h-3 rounded-full transition-all duration-500 ${
+                    loadingStage === 'searching' || loadingStage === 'fetching'
+                      ? 'bg-green-500 scale-125'
+                      : loadingStage === 'preferring' ||
+                        loadingStage === 'ready'
                       ? 'bg-green-500'
                       : 'bg-gray-300'
-                    }`}
+                  }`}
                 ></div>
                 <div
-                  className={`w-3 h-3 rounded-full transition-all duration-500 ${loadingStage === 'preferring'
-                    ? 'bg-green-500 scale-125'
-                    : loadingStage === 'ready'
+                  className={`w-3 h-3 rounded-full transition-all duration-500 ${
+                    loadingStage === 'preferring'
+                      ? 'bg-green-500 scale-125'
+                      : loadingStage === 'ready'
                       ? 'bg-green-500'
                       : 'bg-gray-300'
-                    }`}
+                  }`}
                 ></div>
                 <div
-                  className={`w-3 h-3 rounded-full transition-all duration-500 ${loadingStage === 'ready'
-                    ? 'bg-green-500 scale-125'
-                    : 'bg-gray-300'
-                    }`}
+                  className={`w-3 h-3 rounded-full transition-all duration-500 ${
+                    loadingStage === 'ready'
+                      ? 'bg-green-500 scale-125'
+                      : 'bg-gray-300'
+                  }`}
                 ></div>
               </div>
 
@@ -2076,11 +2105,11 @@ function PlayPageClient() {
                   style={{
                     width:
                       loadingStage === 'searching' ||
-                        loadingStage === 'fetching'
+                      loadingStage === 'fetching'
                         ? '33%'
                         : loadingStage === 'preferring'
-                          ? '66%'
-                          : '100%',
+                        ? '66%'
+                        : '100%',
                   }}
                 ></div>
               </div>
@@ -2175,7 +2204,10 @@ function PlayPageClient() {
             {videoTitle || '影片标题'}
             {totalEpisodes > 1 && (
               <span className='text-gray-500 dark:text-gray-400'>
-                {` > ${detail?.episodes_titles?.[currentEpisodeIndex] || `第 ${currentEpisodeIndex + 1} 集`}`}
+                {` > ${
+                  detail?.episodes_titles?.[currentEpisodeIndex] ||
+                  `第 ${currentEpisodeIndex + 1} 集`
+                }`}
               </span>
             )}
           </h1>
@@ -2194,8 +2226,9 @@ function PlayPageClient() {
               }
             >
               <svg
-                className={`w-3.5 h-3.5 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${isEpisodeSelectorCollapsed ? 'rotate-180' : 'rotate-0'
-                  }`}
+                className={`w-3.5 h-3.5 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${
+                  isEpisodeSelectorCollapsed ? 'rotate-180' : 'rotate-0'
+                }`}
                 fill='none'
                 stroke='currentColor'
                 viewBox='0 0 24 24'
@@ -2213,24 +2246,27 @@ function PlayPageClient() {
 
               {/* 精致的状态指示点 */}
               <div
-                className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full transition-all duration-200 ${isEpisodeSelectorCollapsed
-                  ? 'bg-orange-400 animate-pulse'
-                  : 'bg-green-400'
-                  }`}
+                className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full transition-all duration-200 ${
+                  isEpisodeSelectorCollapsed
+                    ? 'bg-orange-400 animate-pulse'
+                    : 'bg-green-400'
+                }`}
               ></div>
             </button>
           </div>
 
           <div
-            className={`grid gap-4 lg:h-[500px] xl:h-[650px] 2xl:h-[750px] transition-all duration-300 ease-in-out ${isEpisodeSelectorCollapsed
-              ? 'grid-cols-1'
-              : 'grid-cols-1 md:grid-cols-4'
-              }`}
+            className={`grid gap-4 lg:h-[500px] xl:h-[650px] 2xl:h-[750px] transition-all duration-300 ease-in-out ${
+              isEpisodeSelectorCollapsed
+                ? 'grid-cols-1'
+                : 'grid-cols-1 md:grid-cols-4'
+            }`}
           >
             {/* 播放器 */}
             <div
-              className={`h-full transition-all duration-300 ease-in-out rounded-xl border border-white/0 dark:border-white/30 ${isEpisodeSelectorCollapsed ? 'col-span-1' : 'md:col-span-3'
-                }`}
+              className={`h-full transition-all duration-300 ease-in-out rounded-xl border border-white/0 dark:border-white/30 ${
+                isEpisodeSelectorCollapsed ? 'col-span-1' : 'md:col-span-3'
+              }`}
             >
               <div className='relative w-full h-[300px] lg:h-full'>
                 <div
@@ -2240,20 +2276,24 @@ function PlayPageClient() {
 
                 {/* 修改点：快进快退边缘按钮优先挂载到 ArtPlayer 内部，普通/网页全屏/全屏统一常驻显示 */}
                 {seekLayoutMode !== 'off' &&
-                  (portalContainer
-                    ? createPortal(
+                  (portalContainer ? (
+                    createPortal(
                       <div
                         className='moontv-seek-side-controls-layer'
-                        data-hand-mode={seekLayoutMode === 'both' ? 'both' : seekLayoutMode}
+                        data-hand-mode={
+                          seekLayoutMode === 'both' ? 'both' : seekLayoutMode
+                        }
                       >
-                        {(seekLayoutMode === 'both' || seekLayoutMode === 'left') && (
+                        {(seekLayoutMode === 'both' ||
+                          seekLayoutMode === 'left') && (
                           <>
                             <button
                               type='button'
-                              className={`moontv-seek-side-controls ${seekLayoutMode === 'both'
-                                ? 'moontv-seek-side-controls--rewind moontv-seek-side-controls--left'
-                                : 'moontv-seek-side-controls--rewind'
-                                }`}
+                              className={`moontv-seek-side-controls ${
+                                seekLayoutMode === 'both'
+                                  ? 'moontv-seek-side-controls--rewind moontv-seek-side-controls--left'
+                                  : 'moontv-seek-side-controls--rewind'
+                              }`}
                               onClick={handleSeekRewind}
                               aria-label={`快退 ${seekSeconds} 秒`}
                             >
@@ -2272,14 +2312,16 @@ function PlayPageClient() {
                           </>
                         )}
 
-                        {(seekLayoutMode === 'both' || seekLayoutMode === 'right') && (
+                        {(seekLayoutMode === 'both' ||
+                          seekLayoutMode === 'right') && (
                           <>
                             <button
                               type='button'
-                              className={`moontv-seek-side-controls ${seekLayoutMode === 'both'
-                                ? 'moontv-seek-side-controls--forward moontv-seek-side-controls--right'
-                                : 'moontv-seek-side-controls--forward'
-                                }`}
+                              className={`moontv-seek-side-controls ${
+                                seekLayoutMode === 'both'
+                                  ? 'moontv-seek-side-controls--forward moontv-seek-side-controls--right'
+                                  : 'moontv-seek-side-controls--forward'
+                              }`}
                               onClick={handleSeekForward}
                               aria-label={`快进 ${seekSeconds} 秒`}
                             >
@@ -2300,64 +2342,70 @@ function PlayPageClient() {
                       </div>,
                       portalContainer
                     )
-                    : (
-                      <div
-                        className='moontv-seek-side-controls-layer'
-                        data-hand-mode={seekLayoutMode === 'both' ? 'both' : seekLayoutMode}
-                      >
-                        {(seekLayoutMode === 'both' || seekLayoutMode === 'left') && (
-                          <>
-                            <button
-                              type='button'
-                              className={`moontv-seek-side-controls ${seekLayoutMode === 'both'
+                  ) : (
+                    <div
+                      className='moontv-seek-side-controls-layer'
+                      data-hand-mode={
+                        seekLayoutMode === 'both' ? 'both' : seekLayoutMode
+                      }
+                    >
+                      {(seekLayoutMode === 'both' ||
+                        seekLayoutMode === 'left') && (
+                        <>
+                          <button
+                            type='button'
+                            className={`moontv-seek-side-controls ${
+                              seekLayoutMode === 'both'
                                 ? 'moontv-seek-side-controls--rewind moontv-seek-side-controls--left'
                                 : 'moontv-seek-side-controls--rewind'
-                                }`}
-                              onClick={handleSeekRewind}
-                              aria-label={`快退 ${seekSeconds} 秒`}
-                            >
-                              {`↺${seekSeconds}`}
-                            </button>
-                            {seekLayoutMode === 'left' && (
-                              <button
-                                type='button'
-                                className='moontv-seek-side-controls moontv-seek-side-controls--forward'
-                                onClick={handleSeekForward}
-                                aria-label={`快进 ${seekSeconds} 秒`}
-                              >
-                                {`↻${seekSeconds}`}
-                              </button>
-                            )}
-                          </>
-                        )}
-
-                        {(seekLayoutMode === 'both' || seekLayoutMode === 'right') && (
-                          <>
+                            }`}
+                            onClick={handleSeekRewind}
+                            aria-label={`快退 ${seekSeconds} 秒`}
+                          >
+                            {`↺${seekSeconds}`}
+                          </button>
+                          {seekLayoutMode === 'left' && (
                             <button
                               type='button'
-                              className={`moontv-seek-side-controls ${seekLayoutMode === 'both'
-                                ? 'moontv-seek-side-controls--forward moontv-seek-side-controls--right'
-                                : 'moontv-seek-side-controls--forward'
-                                }`}
+                              className='moontv-seek-side-controls moontv-seek-side-controls--forward'
                               onClick={handleSeekForward}
                               aria-label={`快进 ${seekSeconds} 秒`}
                             >
                               {`↻${seekSeconds}`}
                             </button>
-                            {seekLayoutMode === 'right' && (
-                              <button
-                                type='button'
-                                className='moontv-seek-side-controls moontv-seek-side-controls--rewind'
-                                onClick={handleSeekRewind}
-                                aria-label={`快退 ${seekSeconds} 秒`}
-                              >
-                                {`↺${seekSeconds}`}
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    ))}
+                          )}
+                        </>
+                      )}
+
+                      {(seekLayoutMode === 'both' ||
+                        seekLayoutMode === 'right') && (
+                        <>
+                          <button
+                            type='button'
+                            className={`moontv-seek-side-controls ${
+                              seekLayoutMode === 'both'
+                                ? 'moontv-seek-side-controls--forward moontv-seek-side-controls--right'
+                                : 'moontv-seek-side-controls--forward'
+                            }`}
+                            onClick={handleSeekForward}
+                            aria-label={`快进 ${seekSeconds} 秒`}
+                          >
+                            {`↻${seekSeconds}`}
+                          </button>
+                          {seekLayoutMode === 'right' && (
+                            <button
+                              type='button'
+                              className='moontv-seek-side-controls moontv-seek-side-controls--rewind'
+                              onClick={handleSeekRewind}
+                              aria-label={`快退 ${seekSeconds} 秒`}
+                            >
+                              {`↺${seekSeconds}`}
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  ))}
 
                 {/* 换源加载蒙层 */}
                 {isVideoLoading && (
@@ -2401,10 +2449,11 @@ function PlayPageClient() {
 
             {/* 选集和换源 - 在移动端始终显示，在 lg 及以上可折叠 */}
             <div
-              className={`h-[300px] lg:h-full md:overflow-hidden transition-all duration-300 ease-in-out ${isEpisodeSelectorCollapsed
-                ? 'md:col-span-1 lg:hidden lg:opacity-0 lg:scale-95'
-                : 'md:col-span-1 lg:opacity-100 lg:scale-100'
-                }`}
+              className={`h-[300px] lg:h-full md:overflow-hidden transition-all duration-300 ease-in-out ${
+                isEpisodeSelectorCollapsed
+                  ? 'md:col-span-1 lg:hidden lg:opacity-0 lg:scale-95'
+                  : 'md:col-span-1 lg:opacity-100 lg:scale-100'
+              }`}
             >
               <EpisodeSelector
                 totalEpisodes={totalEpisodes}

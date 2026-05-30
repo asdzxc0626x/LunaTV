@@ -185,15 +185,10 @@ div[data-media-provider] video {
   letter-spacing: 0.01em;
   backdrop-filter: blur(8px) saturate(140%);
   -webkit-backdrop-filter: blur(8px) saturate(140%);
-  box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.2),
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition:
-    opacity 0.18s ease,
-    visibility 0.18s ease,
-    background-color 0.2s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease,
+  transition: opacity 0.18s ease, visibility 0.18s ease,
+    background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease,
     transform 0.2s ease;
 }
 
@@ -201,8 +196,7 @@ div[data-media-provider] video {
 .moontv-seek-side-controls-layer .moontv-seek-side-controls:hover {
   background: rgba(0, 0, 0, 0.42);
   border-color: rgba(255, 255, 255, 0.14);
-  box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.24),
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 

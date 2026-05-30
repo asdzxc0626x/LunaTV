@@ -1329,7 +1329,10 @@ export async function saveReminder(
 /**
  * 修改点：删除单条提醒。
  */
-export async function deleteReminder(source: string, id: string): Promise<void> {
+export async function deleteReminder(
+  source: string,
+  id: string
+): Promise<void> {
   const key = generateStorageKey(source, id);
 
   if (STORAGE_TYPE !== 'localstorage') {
@@ -1620,7 +1623,7 @@ export function subscribeToDataUpdates<T>(
   callback: (data: T) => void
 ): () => void {
   if (typeof window === 'undefined') {
-    return () => { };
+    return () => {};
   }
 
   const handleUpdate = (event: CustomEvent) => {
