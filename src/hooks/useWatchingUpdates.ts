@@ -1,4 +1,9 @@
-import { getAllPlayRecords, getAllReminders, PlayRecord, Reminder } from '@/lib/db.client';
+import {
+  getAllPlayRecords,
+  getAllReminders,
+  PlayRecord,
+  Reminder,
+} from '@/lib/db.client';
 
 export interface WatchingUpdateItem {
   title: string;
@@ -54,7 +59,7 @@ async function fetchSourceMap(): Promise<Map<string, string>> {
     const sources = await response.json();
     return buildSourceMap(Array.isArray(sources) ? sources : []);
   } catch (error) {
-    console.warn('获取资源站映射失败:', error);
+    // 修改点：获取资源站映射失败时静默处理
     return new Map();
   }
 }
@@ -114,7 +119,7 @@ async function checkSingleRecordUpdate(
       remarks: record.remarks,
     } as WatchingUpdateItem;
   } catch (error) {
-    console.warn(`检查播放记录更新失败: ${record.title}`, error);
+    // 修改点：检查播放记录更新失败时静默处理
     return null;
   }
 }
@@ -127,7 +132,11 @@ function buildReminderItems(
 
   return Object.entries(reminders)
     .filter(([key, reminder]) => {
-      return !!reminder.releaseDate && reminder.releaseDate <= today && !playRecordKeys.has(key);
+      return (
+        !!reminder.releaseDate &&
+        reminder.releaseDate <= today &&
+        !playRecordKeys.has(key)
+      );
     })
     .map(([key, reminder]) => {
       const [sourceKey, videoId] = key.split('+');
@@ -173,14 +182,19 @@ export async function getWatchingUpdates(): Promise<WatchingUpdate> {
   );
   const reminderResults = buildReminderItems(reminders, playRecordKeys);
   const updatedSeries = [...validRecordResults, ...reminderResults].filter(
-    (item) => item.hasNewEpisode || item.hasContinueWatching || item.hasNewRelease
+    (item) =>
+      item.hasNewEpisode || item.hasContinueWatching || item.hasNewRelease
   );
 
-  const updatedCount = updatedSeries.filter((item) => item.hasNewEpisode).length;
+  const updatedCount = updatedSeries.filter(
+    (item) => item.hasNewEpisode
+  ).length;
   const continueWatchingCount = updatedSeries.filter(
     (item) => item.hasContinueWatching
   ).length;
-  const newReleasesCount = updatedSeries.filter((item) => item.hasNewRelease).length;
+  const newReleasesCount = updatedSeries.filter(
+    (item) => item.hasNewRelease
+  ).length;
 
   return {
     hasUpdates: updatedSeries.length > 0,
