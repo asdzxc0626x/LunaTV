@@ -1220,15 +1220,10 @@ export const UserMenu: React.FC = () => {
         updates={watchingUpdates?.updatedSeries || []}
       />
 
-      {/* 修改点：继续观看弹窗 */}
+      {/* 修改点：继续观看弹窗 - 直接复用主页的 ContinueWatching 组件 */}
       <ContinueWatchingModal
         isOpen={isContinueWatchingModalOpen}
         onClose={() => setIsContinueWatchingModalOpen(false)}
-        items={
-          watchingUpdates?.updatedSeries.filter(
-            (item) => item.hasContinueWatching
-          ) || []
-        }
       />
     </>
   );
