@@ -17,6 +17,21 @@
 import { getAuthInfoFromBrowserCookie } from './auth';
 import { SkipConfig } from './types';
 
+// 修改点：补充提醒类型，供前端更新提醒/想看列表共用
+export interface Reminder {
+  title: string;
+  source_name: string;
+  year: string;
+  cover: string;
+  total_episodes: number;
+  save_time: number;
+  search_title: string;
+  origin?: 'vod' | 'live' | 'shortdrama';
+  type?: string;
+  releaseDate: string;
+  remarks?: string;
+}
+
 // 全局错误触发函数
 function triggerGlobalError(message: string) {
   if (typeof window !== 'undefined') {
@@ -36,10 +51,14 @@ export interface PlayRecord {
   cover: string;
   index: number; // 第几集
   total_episodes: number; // 总集数
+  original_episodes?: number; // 修改点：记录首次观看集数，供新集更新提醒比较
   play_time: number; // 播放进度（秒）
   total_time: number; // 总进度（秒）
   save_time: number; // 记录保存时间（时间戳）
   search_title?: string; // 搜索时使用的标题
+  remarks?: string;
+  douban_id?: number;
+  type?: string;
 }
 
 // ---- 收藏类型 ----
@@ -51,7 +70,10 @@ export interface Favorite {
   total_episodes: number;
   save_time: number;
   search_title?: string;
-  origin?: 'vod' | 'live';
+  origin?: 'vod' | 'live' | 'shortdrama'; // 修改点：兼容迁移来源中的短剧收藏类型
+  type?: string;
+  releaseDate?: string;
+  remarks?: string;
 }
 
 // ---- 缓存数据结构 ----
@@ -64,6 +86,7 @@ interface CacheData<T> {
 interface UserCacheStore {
   playRecords?: CacheData<Record<string, PlayRecord>>;
   favorites?: CacheData<Record<string, Favorite>>;
+  reminders?: CacheData<Record<string, Reminder>>; // 修改点：新增提醒缓存，保证用户菜单与提醒列表状态同步
   searchHistory?: CacheData<string[]>;
   skipConfigs?: CacheData<Record<string, SkipConfig>>;
 }
@@ -71,6 +94,7 @@ interface UserCacheStore {
 // ---- 常量 ----
 const PLAY_RECORDS_KEY = 'moontv_play_records';
 const FAVORITES_KEY = 'moontv_favorites';
+const REMINDERS_KEY = 'moontv_reminders'; // 修改点：localStorage 模式下保存想看/上映提醒
 const SEARCH_HISTORY_KEY = 'moontv_search_history';
 
 // 缓存相关常量
@@ -283,6 +307,35 @@ class HybridCacheManager {
   }
 
   /**
+   * 修改点：获取缓存的提醒，供更新提醒入口复用现有混合缓存模式
+   */
+  getCachedReminders(): Record<string, Reminder> | null {
+    const username = this.getCurrentUsername();
+    if (!username) return null;
+
+    const userCache = this.getUserCache(username);
+    const cached = userCache.reminders;
+
+    if (cached && this.isCacheValid(cached)) {
+      return cached.data;
+    }
+
+    return null;
+  }
+
+  /**
+   * 修改点：缓存提醒数据，避免用户菜单/想看状态重复请求 API
+   */
+  cacheReminders(data: Record<string, Reminder>): void {
+    const username = this.getCurrentUsername();
+    if (!username) return;
+
+    const userCache = this.getUserCache(username);
+    userCache.reminders = this.createCacheData(data);
+    this.saveUserCache(username, userCache);
+  }
+
+  /**
    * 获取缓存的搜索历史
    */
   getCachedSearchHistory(): string[] | null {
@@ -403,7 +456,7 @@ const cacheManager = HybridCacheManager.getInstance();
  * 立即从数据库刷新对应类型的缓存以保持数据一致性
  */
 async function handleDatabaseOperationFailure(
-  dataType: 'playRecords' | 'favorites' | 'searchHistory',
+  dataType: 'playRecords' | 'favorites' | 'reminders' | 'searchHistory',
   error: any
 ): Promise<void> {
   console.error(`数据库操作失败 (${dataType}):`, error);
@@ -427,6 +480,13 @@ async function handleDatabaseOperationFailure(
         );
         cacheManager.cacheFavorites(freshData);
         eventName = 'favoritesUpdated';
+        break;
+      case 'reminders':
+        freshData = await fetchFromApi<Record<string, Reminder>>(
+          `/api/reminders`
+        );
+        cacheManager.cacheReminders(freshData);
+        eventName = 'remindersUpdated';
         break;
       case 'searchHistory':
         freshData = await fetchFromApi<string[]>(`/api/searchhistory`);
@@ -1151,6 +1211,204 @@ export async function isFavorited(
   return !!allFavorites[key];
 }
 
+// ---------------- 提醒相关 API ----------------
+
+/**
+ * 修改点：读取全部提醒，支持 localStorage 和服务端存储两种模式。
+ */
+export async function getAllReminders(): Promise<Record<string, Reminder>> {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+
+  if (STORAGE_TYPE !== 'localstorage') {
+    const cachedData = cacheManager.getCachedReminders();
+
+    if (cachedData) {
+      fetchFromApi<Record<string, Reminder>>(`/api/reminders`)
+        .then((freshData) => {
+          if (JSON.stringify(cachedData) !== JSON.stringify(freshData)) {
+            cacheManager.cacheReminders(freshData);
+            window.dispatchEvent(
+              new CustomEvent('remindersUpdated', {
+                detail: freshData,
+              })
+            );
+          }
+        })
+        .catch((err) => {
+          console.warn('后台同步提醒失败:', err);
+          triggerGlobalError('后台同步提醒失败');
+        });
+
+      return cachedData;
+    }
+
+    try {
+      const freshData = await fetchFromApi<Record<string, Reminder>>(
+        `/api/reminders`
+      );
+      cacheManager.cacheReminders(freshData);
+      return freshData;
+    } catch (err) {
+      console.error('获取提醒失败:', err);
+      triggerGlobalError('获取提醒失败');
+      return {};
+    }
+  }
+
+  try {
+    const raw = localStorage.getItem(REMINDERS_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as Record<string, Reminder>;
+  } catch (err) {
+    console.error('读取提醒失败:', err);
+    triggerGlobalError('读取提醒失败');
+    return {};
+  }
+}
+
+/**
+ * 修改点：保存提醒，供“想看/上映提醒”入口调用。
+ */
+export async function saveReminder(
+  source: string,
+  id: string,
+  reminder: Reminder
+): Promise<void> {
+  const key = generateStorageKey(source, id);
+
+  if (STORAGE_TYPE !== 'localstorage') {
+    const cachedReminders = cacheManager.getCachedReminders() || {};
+    cachedReminders[key] = reminder;
+    cacheManager.cacheReminders(cachedReminders);
+
+    window.dispatchEvent(
+      new CustomEvent('remindersUpdated', {
+        detail: cachedReminders,
+      })
+    );
+
+    try {
+      await fetchWithAuth('/api/reminders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ key, reminder }),
+      });
+    } catch (err) {
+      await handleDatabaseOperationFailure('reminders', err);
+      triggerGlobalError('保存提醒失败');
+      throw err;
+    }
+    return;
+  }
+
+  if (typeof window === 'undefined') {
+    console.warn('无法在服务端保存提醒到 localStorage');
+    return;
+  }
+
+  try {
+    const allReminders = await getAllReminders();
+    allReminders[key] = reminder;
+    localStorage.setItem(REMINDERS_KEY, JSON.stringify(allReminders));
+    window.dispatchEvent(
+      new CustomEvent('remindersUpdated', {
+        detail: allReminders,
+      })
+    );
+  } catch (err) {
+    console.error('保存提醒失败:', err);
+    triggerGlobalError('保存提醒失败');
+    throw err;
+  }
+}
+
+/**
+ * 修改点：删除单条提醒。
+ */
+export async function deleteReminder(source: string, id: string): Promise<void> {
+  const key = generateStorageKey(source, id);
+
+  if (STORAGE_TYPE !== 'localstorage') {
+    const cachedReminders = cacheManager.getCachedReminders() || {};
+    delete cachedReminders[key];
+    cacheManager.cacheReminders(cachedReminders);
+
+    window.dispatchEvent(
+      new CustomEvent('remindersUpdated', {
+        detail: cachedReminders,
+      })
+    );
+
+    try {
+      await fetchWithAuth(`/api/reminders?key=${encodeURIComponent(key)}`, {
+        method: 'DELETE',
+      });
+    } catch (err) {
+      await handleDatabaseOperationFailure('reminders', err);
+      triggerGlobalError('删除提醒失败');
+      throw err;
+    }
+    return;
+  }
+
+  if (typeof window === 'undefined') return;
+
+  try {
+    const allReminders = await getAllReminders();
+    delete allReminders[key];
+    localStorage.setItem(REMINDERS_KEY, JSON.stringify(allReminders));
+    window.dispatchEvent(
+      new CustomEvent('remindersUpdated', {
+        detail: allReminders,
+      })
+    );
+  } catch (err) {
+    console.error('删除提醒失败:', err);
+    triggerGlobalError('删除提醒失败');
+    throw err;
+  }
+}
+
+export async function clearAllReminders(): Promise<void> {
+  if (STORAGE_TYPE !== 'localstorage') {
+    cacheManager.cacheReminders({});
+    window.dispatchEvent(
+      new CustomEvent('remindersUpdated', {
+        detail: {},
+      })
+    );
+
+    try {
+      await fetchWithAuth(`/api/reminders`, {
+        method: 'DELETE',
+      });
+    } catch (err) {
+      await handleDatabaseOperationFailure('reminders', err);
+      triggerGlobalError('清空提醒失败');
+      throw err;
+    }
+    return;
+  }
+
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(REMINDERS_KEY);
+  window.dispatchEvent(
+    new CustomEvent('remindersUpdated', {
+      detail: {},
+    })
+  );
+}
+
+export async function isReminded(source: string, id: string): Promise<boolean> {
+  const key = generateStorageKey(source, id);
+  const allReminders = await getAllReminders();
+  return !!allReminders[key];
+}
+
 /**
  * 清空全部播放记录
  * 数据库存储模式下使用乐观更新：先更新缓存，再异步同步到数据库。
@@ -1310,6 +1568,7 @@ export async function refreshAllCache(): Promise<void> {
 export function getCacheStatus(): {
   hasPlayRecords: boolean;
   hasFavorites: boolean;
+  hasReminders: boolean;
   hasSearchHistory: boolean;
   hasSkipConfigs: boolean;
   username: string | null;
@@ -1318,6 +1577,7 @@ export function getCacheStatus(): {
     return {
       hasPlayRecords: false,
       hasFavorites: false,
+      hasReminders: false,
       hasSearchHistory: false,
       hasSkipConfigs: false,
       username: null,
@@ -1328,6 +1588,7 @@ export function getCacheStatus(): {
   return {
     hasPlayRecords: !!cacheManager.getCachedPlayRecords(),
     hasFavorites: !!cacheManager.getCachedFavorites(),
+    hasReminders: !!cacheManager.getCachedReminders(),
     hasSearchHistory: !!cacheManager.getCachedSearchHistory(),
     hasSkipConfigs: !!cacheManager.getCachedSkipConfigs(),
     username: authInfo?.username || null,
@@ -1339,6 +1600,7 @@ export function getCacheStatus(): {
 export type CacheUpdateEvent =
   | 'playRecordsUpdated'
   | 'favoritesUpdated'
+  | 'remindersUpdated'
   | 'searchHistoryUpdated'
   | 'skipConfigsUpdated';
 

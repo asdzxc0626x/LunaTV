@@ -193,11 +193,15 @@ async function refreshRecordAndFavorites() {
                 cover: detail.poster || record.cover,
                 index: record.index,
                 total_episodes: episodeCount,
+                original_episodes: record.original_episodes || record.total_episodes,
                 play_time: record.play_time,
                 year: detail.year || record.year,
                 total_time: record.total_time,
                 save_time: record.save_time,
                 search_title: record.search_title,
+                remarks: record.remarks,
+                douban_id: record.douban_id,
+                type: record.type,
               });
               console.log(
                 `更新播放记录: ${record.title} (${record.total_episodes} -> ${episodeCount})`

@@ -3,7 +3,7 @@
 import { AdminConfig } from './admin.types';
 import { KvrocksStorage } from './kvrocks.db';
 import { RedisStorage } from './redis.db';
-import { Favorite, IStorage, PlayRecord, SkipConfig } from './types';
+import { Favorite, IStorage, PlayRecord, Reminder, SkipConfig } from './types';
 import { UpstashRedisStorage } from './upstash.db';
 
 // storage type 常量: 'localstorage' | 'redis' | 'upstash'，默认 'localstorage'
@@ -160,6 +160,46 @@ export class DbManager {
   ): Promise<boolean> {
     const favorite = await this.getFavorite(userName, source, id);
     return favorite !== null;
+  }
+
+  // ---------- 提醒相关 ----------
+  async getReminder(
+    userName: string,
+    source: string,
+    id: string
+  ): Promise<Reminder | null> {
+    const key = generateStorageKey(source, id);
+    return this.storage.getReminder(userName, key);
+  }
+
+  async saveReminder(
+    userName: string,
+    source: string,
+    id: string,
+    reminder: Reminder
+  ): Promise<void> {
+    const key = generateStorageKey(source, id);
+    await this.storage.setReminder(userName, key, reminder);
+  }
+
+  async getAllReminders(
+    userName: string
+  ): Promise<{ [key: string]: Reminder }> {
+    await this.ensureMigrated();
+    return this.storage.getAllReminders(userName);
+  }
+
+  async deleteReminder(
+    userName: string,
+    source: string,
+    id: string
+  ): Promise<void> {
+    const key = generateStorageKey(source, id);
+    await this.storage.deleteReminder(userName, key);
+  }
+
+  async deleteAllReminders(userName: string): Promise<void> {
+    await this.storage.deleteAllReminders(userName);
   }
 
   // ---------- 用户相关 ----------

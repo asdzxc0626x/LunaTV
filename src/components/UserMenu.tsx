@@ -3,6 +3,7 @@
 'use client';
 
 import {
+  Bell,
   Check,
   ChevronDown,
   ExternalLink,
@@ -20,6 +21,7 @@ import { createPortal } from 'react-dom';
 import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
 import { CURRENT_VERSION } from '@/lib/version';
 import { checkForUpdates, UpdateStatus } from '@/lib/version_check';
+import { getWatchingUpdates, WatchingUpdate } from '@/hooks/useWatchingUpdates';
 
 import { VersionPanel } from './VersionPanel';
 
@@ -37,6 +39,12 @@ export const UserMenu: React.FC = () => {
   const [authInfo, setAuthInfo] = useState<AuthInfo | null>(null);
   const [storageType, setStorageType] = useState<string>('localstorage');
   const [mounted, setMounted] = useState(false);
+
+  // 修改点：追更检测状态，仅在非 localStorage 模式下启用
+  const [watchingUpdates, setWatchingUpdates] = useState<WatchingUpdate | null>(
+    null
+  );
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
 
   // Body 滚动锁定 - 使用 overflow 方式避免布局问题
   useEffect(() => {
@@ -252,6 +260,21 @@ export const UserMenu: React.FC = () => {
 
   const handleMenuClick = () => {
     setIsOpen(!isOpen);
+
+    // 修改点：打开菜单时触发追更检测（仅非 localStorage 模式）
+    if (!isOpen && storageType !== 'localstorage' && authInfo?.username) {
+      setIsCheckingUpdates(true);
+      getWatchingUpdates()
+        .then((updates) => {
+          setWatchingUpdates(updates);
+        })
+        .catch((err) => {
+          console.error('检查追更失败:', err);
+        })
+        .finally(() => {
+          setIsCheckingUpdates(false);
+        });
+    }
   };
 
   const handleCloseMenu = () => {
@@ -519,6 +542,25 @@ export const UserMenu: React.FC = () => {
 
         {/* 菜单项 */}
         <div className='py-1'>
+          {/* 修改点：追更提醒入口，仅在非 localStorage 模式下显示 */}
+          {storageType !== 'localstorage' && (
+            <button
+              onClick={() => {
+                handleCloseMenu();
+                console.log('追更提醒功能开发中...');
+              }}
+              className='w-full px-3 py-2 text-left flex items-center gap-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm relative'
+            >
+              <Bell className='w-4 h-4 text-gray-500 dark:text-gray-400' />
+              <span className='font-medium'>追更提醒</span>
+              {watchingUpdates && watchingUpdates.hasUpdates && (
+                <span className='ml-auto inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium text-white bg-red-500 rounded-full'>
+                  {watchingUpdates.updatedCount + watchingUpdates.newReleasesCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {/* 设置按钮 */}
           <button
             onClick={handleSettings}
@@ -1100,9 +1142,16 @@ export const UserMenu: React.FC = () => {
         >
           <User className='w-full h-full' />
         </button>
+        {/* 修改点：版本更新红点 */}
         {updateStatus === UpdateStatus.HAS_UPDATE && (
           <div className='absolute top-[2px] right-[2px] w-2 h-2 bg-yellow-500 rounded-full'></div>
         )}
+        {/* 修改点：追更提醒红点，仅在有更新且非 localStorage 模式下显示 */}
+        {storageType !== 'localstorage' &&
+          watchingUpdates &&
+          watchingUpdates.hasUpdates && (
+            <div className='absolute top-[2px] right-[10px] w-2 h-2 bg-red-500 rounded-full'></div>
+          )}
       </div>
 
       {/* 使用 Portal 将菜单面板渲染到 document.body */}

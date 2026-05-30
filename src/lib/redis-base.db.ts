@@ -4,7 +4,7 @@ import { createClient, RedisClientType } from 'redis';
 
 import { AdminConfig } from './admin.types';
 import { hashPassword, isHashed, verifyPassword } from './password';
-import { Favorite, IStorage, PlayRecord, SkipConfig } from './types';
+import { Favorite, IStorage, PlayRecord, Reminder, SkipConfig } from './types';
 
 // 搜索历史最大条数
 const SEARCH_HISTORY_LIMIT = 20;
@@ -246,6 +246,51 @@ export abstract class BaseRedisStorage implements IStorage {
     await this.withRetry(() => this.client.del(this.favHashKey(userName)));
   }
 
+  // ---------- 提醒 ----------
+  private reminderHashKey(user: string) {
+    return `u:${user}:reminders`; // 修改点：新增独立提醒 Hash，按用户隔离上映提醒/想看数据
+  }
+
+  async getReminder(userName: string, key: string): Promise<Reminder | null> {
+    const val = await this.withRetry(() =>
+      this.client.hGet(this.reminderHashKey(userName), key)
+    );
+    return val ? (JSON.parse(val) as Reminder) : null;
+  }
+
+  async setReminder(
+    userName: string,
+    key: string,
+    reminder: Reminder
+  ): Promise<void> {
+    await this.withRetry(() =>
+      this.client.hSet(this.reminderHashKey(userName), key, JSON.stringify(reminder))
+    );
+  }
+
+  async getAllReminders(userName: string): Promise<Record<string, Reminder>> {
+    const all = await this.withRetry(() =>
+      this.client.hGetAll(this.reminderHashKey(userName))
+    );
+    const result: Record<string, Reminder> = {};
+    for (const [field, raw] of Object.entries(all)) {
+      if (raw) {
+        result[field] = JSON.parse(raw) as Reminder;
+      }
+    }
+    return result;
+  }
+
+  async deleteReminder(userName: string, key: string): Promise<void> {
+    await this.withRetry(() =>
+      this.client.hDel(this.reminderHashKey(userName), key)
+    );
+  }
+
+  async deleteAllReminders(userName: string): Promise<void> {
+    await this.withRetry(() => this.client.del(this.reminderHashKey(userName)));
+  }
+
   // ---------- 用户注册 / 登录 ----------
   private userPwdKey(user: string) {
     return `u:${user}:pwd`;
@@ -306,6 +351,9 @@ export abstract class BaseRedisStorage implements IStorage {
 
     // 删除收藏夹（Hash key 直接删除）
     await this.withRetry(() => this.client.del(this.favHashKey(userName)));
+
+    // 修改点：删除用户时同步删除提醒数据，避免遗留孤立 reminder 记录
+    await this.withRetry(() => this.client.del(this.reminderHashKey(userName)));
 
     // 删除跳过片头片尾配置（Hash key 直接删除）
     await this.withRetry(() => this.client.del(this.skipHashKey(userName)));

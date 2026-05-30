@@ -4,7 +4,7 @@ import { Redis } from '@upstash/redis';
 
 import { AdminConfig } from './admin.types';
 import { hashPassword, isHashed, verifyPassword } from './password';
-import { Favorite, IStorage, PlayRecord, SkipConfig } from './types';
+import { Favorite, IStorage, PlayRecord, Reminder, SkipConfig } from './types';
 
 // 搜索历史最大条数
 const SEARCH_HISTORY_LIMIT = 20;
@@ -154,6 +154,50 @@ export class UpstashRedisStorage implements IStorage {
     await withRetry(() => this.client.del(this.favHashKey(userName)));
   }
 
+  // ---------- 提醒 ----------
+  private reminderHashKey(user: string) {
+    return `u:${user}:reminders`; // 修改点：新增独立提醒 Hash，保持与 Redis/Kvrocks 的用户隔离结构一致
+  }
+
+  async getReminder(userName: string, key: string): Promise<Reminder | null> {
+    const val = await withRetry(() =>
+      this.client.hget(this.reminderHashKey(userName), key)
+    );
+    return val ? (val as Reminder) : null;
+  }
+
+  async setReminder(
+    userName: string,
+    key: string,
+    reminder: Reminder
+  ): Promise<void> {
+    await withRetry(() =>
+      this.client.hset(this.reminderHashKey(userName), { [key]: reminder })
+    );
+  }
+
+  async getAllReminders(userName: string): Promise<Record<string, Reminder>> {
+    const all = await withRetry(() =>
+      this.client.hgetall(this.reminderHashKey(userName))
+    );
+    if (!all || Object.keys(all).length === 0) return {};
+    const result: Record<string, Reminder> = {};
+    for (const [field, value] of Object.entries(all)) {
+      if (value) {
+        result[field] = value as Reminder;
+      }
+    }
+    return result;
+  }
+
+  async deleteReminder(userName: string, key: string): Promise<void> {
+    await withRetry(() => this.client.hdel(this.reminderHashKey(userName), key));
+  }
+
+  async deleteAllReminders(userName: string): Promise<void> {
+    await withRetry(() => this.client.del(this.reminderHashKey(userName)));
+  }
+
   // ---------- 用户注册 / 登录 ----------
   private userPwdKey(user: string) {
     return `u:${user}:pwd`;
@@ -214,6 +258,9 @@ export class UpstashRedisStorage implements IStorage {
 
     // 删除收藏夹（Hash key 直接删除）
     await withRetry(() => this.client.del(this.favHashKey(userName)));
+
+    // 修改点：删除用户时同步删除提醒数据，避免想看/上映提醒残留
+    await withRetry(() => this.client.del(this.reminderHashKey(userName)));
 
     // 删除跳过片头片尾配置（Hash key 直接删除）
     await withRetry(() => this.client.del(this.skipHashKey(userName)));

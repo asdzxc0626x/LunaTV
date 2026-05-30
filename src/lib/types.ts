@@ -8,10 +8,14 @@ export interface PlayRecord {
   year: string;
   index: number; // 第几集
   total_episodes: number; // 总集数
+  original_episodes?: number; // 修改点：补充首次观看时的原始集数，供更新提醒判断新集使用
   play_time: number; // 播放进度（秒）
   total_time: number; // 总进度（秒）
   save_time: number; // 记录保存时间（时间戳）
   search_title: string; // 搜索时使用的标题
+  remarks?: string; // 修改点：兼容增强版备注信息（如已完结、更新至X集）
+  douban_id?: number; // 修改点：兼容增强版豆瓣ID，便于更准确识别内容
+  type?: string; // 修改点：兼容增强版内容类型，供追更和入口扩展使用
 }
 
 // 收藏数据结构
@@ -23,7 +27,25 @@ export interface Favorite {
   cover: string;
   save_time: number; // 记录保存时间（时间戳）
   search_title: string; // 搜索时使用的标题
-  origin?: 'vod' | 'live';
+  origin?: 'vod' | 'live' | 'shortdrama'; // 修改点：兼容短剧来源，避免迁移后字段丢失
+  type?: string; // 修改点：兼容增强版内容类型
+  releaseDate?: string; // 修改点：补充上映日期，供想看/上映提醒使用
+  remarks?: string; // 修改点：兼容上映说明、状态说明等扩展信息
+}
+
+// 提醒数据结构
+export interface Reminder {
+  source_name: string;
+  total_episodes: number; // 总集数
+  title: string;
+  year: string;
+  cover: string;
+  save_time: number; // 记录保存时间（时间戳）
+  search_title: string; // 搜索时使用的标题
+  origin?: 'vod' | 'live' | 'shortdrama';
+  type?: string; // 内容类型（movie/tv/variety/shortdrama等）
+  releaseDate: string; // 修改点：上映提醒必须依赖上映日期判断是否已上映
+  remarks?: string; // 备注信息（如X天后上映、今日上映、已上映）
 }
 
 // 存储接口
@@ -45,6 +67,13 @@ export interface IStorage {
   getAllFavorites(userName: string): Promise<{ [key: string]: Favorite }>;
   deleteFavorite(userName: string, key: string): Promise<void>;
   deleteAllFavorites(userName: string): Promise<void>;
+
+  // 提醒相关
+  getReminder(userName: string, key: string): Promise<Reminder | null>;
+  setReminder(userName: string, key: string, reminder: Reminder): Promise<void>;
+  getAllReminders(userName: string): Promise<{ [key: string]: Reminder }>;
+  deleteReminder(userName: string, key: string): Promise<void>;
+  deleteAllReminders(userName: string): Promise<void>;
 
   // 用户相关
   registerUser(userName: string, password: string): Promise<void>;
