@@ -54,6 +54,7 @@ export interface VideoCardProps {
   isBangumi?: boolean;
   isAggregate?: boolean;
   origin?: 'vod' | 'live';
+  newEpisodes?: number; // 修改点：新增更新集数属性，用于追更提醒
 }
 
 export type VideoCardHandle = {
@@ -84,6 +85,7 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
       isBangumi = false,
       isAggregate = false,
       origin = 'vod',
+      newEpisodes, // 修改点：接收新增集数参数
     }: VideoCardProps,
     ref
   ) {
@@ -824,9 +826,10 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
               </div>
             )}
 
+            {/* 修改点：集数徽章移到左上角 */}
             {actualEpisodes && actualEpisodes > 1 && (
               <div
-                className='absolute top-2 right-2 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-md shadow-md transition-all duration-300 ease-out group-hover:scale-110'
+                className='absolute top-2 left-2 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-md shadow-md transition-all duration-300 ease-out group-hover:scale-110'
                 style={
                   {
                     WebkitUserSelect: 'none',
@@ -842,6 +845,26 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
                 {currentEpisode
                   ? `${currentEpisode}/${actualEpisodes}`
                   : actualEpisodes}
+              </div>
+            )}
+
+            {/* 修改点：新集数徽章显示在右上角（红色） */}
+            {newEpisodes && newEpisodes > 0 && (
+              <div
+                className='absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-md shadow-md transition-all duration-300 ease-out group-hover:scale-110'
+                style={
+                  {
+                    WebkitUserSelect: 'none',
+                    userSelect: 'none',
+                    WebkitTouchCallout: 'none',
+                  } as React.CSSProperties
+                }
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  return false;
+                }}
+              >
+                +{newEpisodes}
               </div>
             )}
 
