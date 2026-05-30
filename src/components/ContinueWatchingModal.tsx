@@ -5,14 +5,14 @@ import { X } from 'lucide-react';
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-import ContinueWatching from './ContinueWatching';
+import ContinueWatchingGrid from './ContinueWatchingGrid';
 
 interface ContinueWatchingModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-// 修改点：继续观看弹窗组件，直接复用主页的 ContinueWatching 组件
+// 修改点：继续观看弹窗组件，使用网格布局版本的 ContinueWatchingGrid 组件
 export const ContinueWatchingModal: React.FC<ContinueWatchingModalProps> = ({
   isOpen,
   onClose,
@@ -82,9 +82,9 @@ export const ContinueWatchingModal: React.FC<ContinueWatchingModalProps> = ({
           </button>
         </div>
 
-        {/* 修改点：内容区域 - 直接复用主页的 ContinueWatching 组件 */}
+        {/* 修改点：内容区域 - 使用网格布局版本的 ContinueWatchingGrid 组件 */}
         <div className='flex-1 overflow-y-auto px-6 py-4'>
-          <ContinueWatching />
+          <ContinueWatchingGrid />
         </div>
       </div>
     </div>,
