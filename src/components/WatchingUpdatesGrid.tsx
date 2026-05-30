@@ -1,8 +1,6 @@
 /* eslint-disable no-console */
 'use client';
 
-import { useRouter } from 'next/navigation';
-
 import { WatchingUpdateItem } from '@/hooks/useWatchingUpdates';
 
 import VideoCard from '@/components/VideoCard';
@@ -17,18 +15,8 @@ export default function WatchingUpdatesGrid({
   updates,
   className,
 }: WatchingUpdatesGridProps) {
-  const router = useRouter();
-
   // 修改点：只显示有新集更新的剧集
   const newEpisodeItems = updates.filter((item) => item.hasNewEpisode);
-
-  // 修改点：处理点击卡片，跳转到播放页
-  const handleItemClick = (item: WatchingUpdateItem) => {
-    const playUrl = `/play?source=${item.sourceKey}&id=${item.videoId}&index=${
-      item.currentEpisode + 1
-    }`;
-    router.push(playUrl);
-  };
 
   if (newEpisodeItems.length === 0) {
     return (
@@ -52,11 +40,7 @@ export default function WatchingUpdatesGrid({
       {/* 修改点：使用响应式网格布局，小屏2列，中屏3-4列，大屏最多6列 */}
       <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4'>
         {newEpisodeItems.map((item, index) => (
-          <div
-            key={`new-${index}`}
-            className='w-full'
-            onClick={() => handleItemClick(item)}
-          >
+          <div key={`new-${index}`} className='w-full'>
             <VideoCard
               id={item.videoId}
               title={item.title}

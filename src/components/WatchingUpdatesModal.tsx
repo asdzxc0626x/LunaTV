@@ -48,10 +48,10 @@ export const WatchingUpdatesModal: React.FC<WatchingUpdatesModalProps> = ({
       // 检查是否点击了视频卡片或其子元素
       const videoCard = target.closest('[data-video-card]');
       if (videoCard) {
-        // 延迟关闭弹窗，确保路由跳转先执行
+        // 修改点：增加延迟时间，确保路由跳转完全执行
         setTimeout(() => {
           onClose();
-        }, 100);
+        }, 300);
       }
     };
 
