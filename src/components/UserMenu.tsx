@@ -16,7 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
@@ -123,6 +123,20 @@ export const UserMenu: React.FC = () => {
   // 版本检查相关状态
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [isChecking, setIsChecking] = useState(true);
+
+  const refreshWatchingUpdates = useCallback(async () => {
+    // 修改点：追更提醒改为后台自动检测，菜单打开时也复用同一逻辑
+    if (storageType === 'localstorage') {
+      return;
+    }
+
+    try {
+      const updates = await getWatchingUpdates();
+      setWatchingUpdates(updates);
+    } catch (err) {
+      console.error('检查追更失败:', err);
+    }
+  }, [storageType]);
 
   // 确保组件已挂载
   useEffect(() => {
@@ -238,6 +252,11 @@ export const UserMenu: React.FC = () => {
     checkUpdate();
   }, []);
 
+  useEffect(() => {
+    // 修改点：进入菜单后自动后台刷新追更提醒，确保红点和列表不依赖手动打开菜单才更新
+    refreshWatchingUpdates();
+  }, [refreshWatchingUpdates]);
+
   // 点击外部区域关闭下拉框
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -276,15 +295,9 @@ export const UserMenu: React.FC = () => {
   const handleMenuClick = () => {
     setIsOpen(!isOpen);
 
-    // 修改点：打开菜单时触发追更检测（仅非 localStorage 模式）
-    if (!isOpen && storageType !== 'localstorage' && authInfo?.username) {
-      getWatchingUpdates()
-        .then((updates) => {
-          setWatchingUpdates(updates);
-        })
-        .catch((err) => {
-          console.error('检查追更失败:', err);
-        });
+    // 修改点：打开菜单时复用后台追更检测逻辑，避免只在这里维护一份请求代码
+    if (!isOpen) {
+      refreshWatchingUpdates();
     }
   };
 
