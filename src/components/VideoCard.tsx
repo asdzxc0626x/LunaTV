@@ -238,6 +238,19 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
       [from, actualSource, actualId, onDelete]
     );
 
+    const navigateToPlay = useCallback(
+      (url: string) => {
+        // 修改点：播放页内切换播放记录时强制整页跳转，避免仅更新 URL 导致播放器不重新初始化
+        if (typeof window !== 'undefined' && window.location.pathname === '/play') {
+          window.location.assign(url);
+          return;
+        }
+
+        router.push(url);
+      },
+      [router]
+    );
+
     const handleClick = useCallback(() => {
       if (origin === 'live' && actualSource && actualId) {
         // 直播内容跳转到直播页面
@@ -257,7 +270,7 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
         }${
           actualQuery ? `&stitle=${encodeURIComponent(actualQuery.trim())}` : ''
         }`;
-        router.push(url);
+        navigateToPlay(url);
       } else if (actualSource && actualId) {
         const url = `/play?source=${actualSource}&id=${actualId}&title=${encodeURIComponent(
           actualTitle
@@ -266,7 +279,7 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
         }${
           actualQuery ? `&stitle=${encodeURIComponent(actualQuery.trim())}` : ''
         }${actualSearchType ? `&stype=${actualSearchType}` : ''}`;
-        router.push(url);
+        navigateToPlay(url);
       }
     }, [
       origin,
@@ -274,6 +287,7 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
       actualSource,
       actualId,
       router,
+      navigateToPlay,
       actualTitle,
       actualYear,
       isAggregate,
